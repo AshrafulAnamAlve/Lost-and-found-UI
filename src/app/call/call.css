@@ -1,0 +1,82 @@
+/* ── Incoming call popup ── */
+.call-incoming {
+  position: fixed; inset: 0; z-index: 4000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(10,12,24,.6); backdrop-filter: blur(4px);
+}
+.ci-card {
+  background: var(--card); border-radius: 20px; padding: 2.2rem 2.5rem; text-align: center;
+  box-shadow: 0 24px 60px rgba(0,0,0,.4); min-width: 300px;
+}
+.ci-avatar {
+  width: 84px; height: 84px; border-radius: 50%; margin: 0 auto 1rem;
+  display: flex; align-items: center; justify-content: center; font-size: 2rem; color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+}
+.ci-card h3 { margin: 0; color: var(--primary); font-size: 1.3rem; }
+.ci-card p { color: var(--muted); margin: .3rem 0 1.5rem; text-transform: capitalize; }
+.ci-actions { display: flex; gap: 2.5rem; justify-content: center; }
+.ci-btn {
+  width: 60px; height: 60px; border-radius: 50%; border: none; cursor: pointer;
+  color: #fff; font-size: 1.4rem; transition: transform .15s;
+}
+.ci-btn:hover { transform: scale(1.1); }
+.ci-btn.accept { background: #16a085; animation: ringShake 1s ease-in-out infinite; }
+.ci-btn.reject { background: #e74c3c; }
+
+.ring { animation: ringPulse 1.5s ease-out infinite; }
+@keyframes ringPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(233,69,96,.5); }
+  100% { box-shadow: 0 0 0 22px rgba(233,69,96,0); }
+}
+@keyframes ringShake {
+  0%,100% { transform: rotate(0); } 25% { transform: rotate(-12deg); } 75% { transform: rotate(12deg); }
+}
+
+/* ── Call screen ── */
+.call-screen { position: fixed; inset: 0; z-index: 3900; background: #0b0f1a; overflow: hidden; }
+.remote-video { width: 100%; height: 100%; object-fit: cover; background: #0b0f1a; }
+
+.call-status {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; color: #fff; text-align: center;
+}
+.cs-avatar {
+  width: 110px; height: 110px; border-radius: 50%; margin-bottom: 1.2rem;
+  display: flex; align-items: center; justify-content: center; font-size: 2.6rem; color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+}
+.call-status h3 { margin: 0; font-size: 1.6rem; }
+.call-status p { color: rgba(255,255,255,.7); margin-top: .4rem; }
+
+.call-name-tag {
+  position: absolute; top: 20px; left: 20px; color: #fff; font-weight: 600;
+  background: rgba(0,0,0,.45); padding: 7px 14px; border-radius: 20px; font-size: .9rem;
+  display: flex; align-items: center; gap: .45rem;
+}
+.live-dot { color: #2ecc71; font-size: .55rem; }
+
+.local-video {
+  position: absolute; bottom: 110px; right: 20px;
+  width: 180px; height: 130px; object-fit: cover; border-radius: 12px;
+  border: 2px solid rgba(255,255,255,.35); background: #1a1a2e; transform: scaleX(-1);
+  box-shadow: 0 8px 24px rgba(0,0,0,.45);
+}
+
+.call-controls {
+  position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 1.3rem; background: rgba(0,0,0,.4); padding: 12px 20px; border-radius: 40px;
+  backdrop-filter: blur(8px);
+}
+.call-controls button {
+  width: 54px; height: 54px; border-radius: 50%; border: none; cursor: pointer;
+  background: rgba(255,255,255,.16); color: #fff; font-size: 1.15rem; transition: background .15s, transform .15s;
+}
+.call-controls button:hover { transform: scale(1.08); }
+.call-controls button.off { background: #fff; color: var(--primary); }
+.call-controls button.hangup { background: #e74c3c; }
+.call-controls button.hangup:hover { background: #c0392b; }
+
+@media (max-width: 600px) {
+  .local-video { width: 110px; height: 80px; bottom: 100px; }
+}

@@ -1,0 +1,47 @@
+<!-- Incoming call popup -->
+<div class="call-incoming" *ngIf="call.state() === 'incoming'">
+  <div class="ci-card">
+    <div class="ci-avatar ring">
+      <i class="fas" [class.fa-video]="call.callType() === 'video'" [class.fa-phone]="call.callType() === 'audio'"></i>
+    </div>
+    <h3>{{ call.remoteName() }}</h3>
+    <p>Incoming {{ call.callType() }} call…</p>
+    <div class="ci-actions">
+      <button class="ci-btn reject" (click)="call.reject()" title="Decline"><i class="fas fa-phone-slash"></i></button>
+      <button class="ci-btn accept" (click)="call.accept()" title="Accept"><i class="fas fa-phone"></i></button>
+    </div>
+  </div>
+</div>
+
+<!-- Calling / In-call screen -->
+<div class="call-screen" *ngIf="call.state() === 'calling' || call.state() === 'connected'">
+
+  <video class="remote-video" autoplay playsinline [srcObject]="call.remoteStream()"></video>
+
+  <!-- Outgoing "calling…" overlay until the other side answers -->
+  <div class="call-status" *ngIf="call.state() === 'calling'">
+    <div class="cs-avatar ring"><i class="fas fa-user"></i></div>
+    <h3>{{ call.remoteName() }}</h3>
+    <p>Calling…</p>
+  </div>
+
+  <!-- Connected: name tag + (when no remote video yet) a hint -->
+  <div class="call-name-tag" *ngIf="call.state() === 'connected'">
+    <i class="fas fa-circle live-dot"></i> {{ call.remoteName() }}
+  </div>
+
+  <!-- Local preview (video calls only) -->
+  <video class="local-video" autoplay playsinline muted
+         *ngIf="call.callType() === 'video'" [srcObject]="call.localStream()"></video>
+
+  <!-- Controls -->
+  <div class="call-controls">
+    <button [class.off]="call.muted()" (click)="call.toggleMute()" title="Mute">
+      <i class="fas" [class.fa-microphone]="!call.muted()" [class.fa-microphone-slash]="call.muted()"></i>
+    </button>
+    <button *ngIf="call.callType() === 'video'" [class.off]="call.cameraOff()" (click)="call.toggleCamera()" title="Camera">
+      <i class="fas" [class.fa-video]="!call.cameraOff()" [class.fa-video-slash]="call.cameraOff()"></i>
+    </button>
+    <button class="hangup" (click)="call.hangup()" title="End call"><i class="fas fa-phone-slash"></i></button>
+  </div>
+</div>

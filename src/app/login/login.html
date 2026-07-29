@@ -1,0 +1,127 @@
+<!-- Particles -->
+<div class="particles" id="particles"></div>
+
+<!-- Nav -->
+<nav class="hero-nav">
+  <div class="hero-logo"><div class="logo-dot"></div>Lost &amp; Found</div>
+  <div class="nav-btns">
+    <button class="btn-nav-outline" (click)="openLogin()">Login</button>
+    <button class="btn-nav-solid" (click)="openSignup()">Sign Up</button>
+  </div>
+</nav>
+
+<!-- Hero -->
+<div class="hero-body">
+  <div class="hero-badge"><i class="fas fa-robot"></i> AI-Powered Matching</div>
+  <h1 class="hero-title">
+    Reunite <span class="hl-red">Lost</span><br>
+    Celebrate <span class="hl-green">Found</span>
+  </h1>
+  <p class="hero-sub">The smartest lost &amp; found platform. Our AI instantly matches lost items with found ones — helping you reconnect with what matters most.</p>
+
+  <div class="float-row">
+    <div class="float-card"><i class="fas fa-shopping-bag icon icon-bag"></i> Bags</div>
+    <div class="float-card"><i class="fas fa-mobile-alt icon icon-phone"></i> Phones</div>
+    <div class="float-card"><i class="fas fa-key icon icon-key"></i> Keys</div>
+    <div class="float-card"><i class="fas fa-id-card icon icon-id"></i> ID Cards</div>
+  </div>
+
+  <div class="cta-row">
+    <button class="btn-cta btn-cta-lost"  (click)="openLogin()"><i class="fas fa-search"></i> Report Lost Item</button>
+    <button class="btn-cta btn-cta-found" (click)="openLogin()"><i class="fas fa-hand-holding-heart"></i> Report Found Item</button>
+    <button class="btn-cta btn-cta-login" (click)="openLogin()"><i class="fas fa-user"></i> Sign In</button>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="hero-stats">
+  <div class="stat-item"><div class="stat-num">1,<span>247</span></div><div class="stat-label">Items Reunited</div></div>
+  <div class="stat-item"><div class="stat-num"><span>98</span>%</div><div class="stat-label">AI Accuracy</div></div>
+  <div class="stat-item"><div class="stat-num"><span>5K</span>+</div><div class="stat-label">Active Users</div></div>
+  <div class="stat-item"><div class="stat-num"><span>24</span>h</div><div class="stat-label">Avg Match Time</div></div>
+</div>
+
+<!-- Features -->
+<section class="features-section">
+  <h2 class="section-heading">Why Lost &amp; Found BUBT?</h2>
+  <p class="section-sub">Powered by cutting-edge AI to maximise your chances of recovery</p>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feat-icon red"><i class="fas fa-brain"></i></div>
+      <h3>AI Similarity Matching</h3>
+      <p>Analyzes descriptions, categories, colors and locations to find the best match automatically and instantly.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feat-icon green"><i class="fas fa-bolt"></i></div>
+      <h3>Instant Notifications</h3>
+      <p>Get notified the moment a potential match is found — every second counts when it comes to your belongings.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feat-icon blue"><i class="fas fa-shield-alt"></i></div>
+      <h3>Verified Community</h3>
+      <p>All users are registered and verified, creating a trusted ecosystem of people helping each other.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feat-icon gold"><i class="fas fa-camera"></i></div>
+      <h3>Photo Evidence</h3>
+      <p>Upload photos so owners can confirm their belongings with complete confidence and certainty.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="landing-footer">&copy; 2026 Lost &amp; Found — BUBT. All rights reserved.</footer>
+
+<!-- Login Modal -->
+<div class="modal-overlay" *ngIf="showLogin" (click)="closeModal()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
+    <p class="modal-title">Welcome Back 👋</p>
+    <p class="modal-sub">Sign in to your Lost &amp; Found account</p>
+    <form [formGroup]="loginForm">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" formControlName="email" placeholder="your@email.com">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" formControlName="password" placeholder="••••••••">
+      </div>
+      <button type="button" class="btn-modal-submit" (click)="onLogin()">
+        <i class="fas fa-sign-in-alt"></i> Sign In
+      </button>
+    </form>
+    <p style="text-align:center;margin-top:1rem;font-size:.88rem;color:var(--muted)">
+      Don't have an account? <span style="color:var(--accent);cursor:pointer;font-weight:600" (click)="openSignup()">Sign Up</span>
+    </p>
+  </div>
+</div>
+
+<!-- Signup Modal -->
+<div class="modal-overlay" *ngIf="showSignup" (click)="closeModal()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
+    <p class="modal-title">Create Account 🚀</p>
+    <p class="modal-sub">Join the Lost &amp; Found community today</p>
+    <form [formGroup]="RegisterForm">
+      <div class="form-row">
+        <div class="form-group"><label>First Name</label><input type="text" formControlName="firstName" placeholder="John"></div>
+        <div class="form-group"><label>Last Name</label><input type="text" formControlName="lastName" placeholder="Doe"></div>
+      </div>
+      <div class="form-group"><label>Email</label><input type="email" formControlName="email" placeholder="your@email.com"></div>
+      <div class="form-group"><label>Password</label><input type="password" formControlName="password" placeholder="Create a password"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Phone</label><input type="tel" formControlName="phone" placeholder="+880..."></div>
+        <div class="form-group"><label>City</label><input type="text" formControlName="city" placeholder="Dhaka"></div>
+      </div>
+      <div class="form-group"><label>Address</label><input type="text" formControlName="address" placeholder="Your address"></div>
+      <div class="form-group"><label>Secondary Phone <span style="font-weight:400;color:var(--muted)">(Optional)</span></label><input type="tel" formControlName="secondaryPhone" placeholder="Alternate number"></div>
+      <button type="button" class="btn-modal-submit" (click)="onRegister()">
+        <i class="fas fa-user-plus"></i> Create Account
+      </button>
+    </form>
+    <p style="text-align:center;margin-top:1rem;font-size:.88rem;color:var(--muted)">
+      Already have an account? <span style="color:var(--accent);cursor:pointer;font-weight:600" (click)="openLogin()">Sign In</span>
+    </p>
+  </div>
+</div>

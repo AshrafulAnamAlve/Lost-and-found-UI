@@ -1,0 +1,22 @@
+<!-- side-navbar.component.html -->
+<aside class="side-navbar">
+  <div class="side-logo">
+    <i class="fas fa-location-dot"></i>
+    Lost & Found
+  </div>
+
+  <nav class="side-links">
+    <a routerLink="/dashbord" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">
+      <i class="fas fa-home"></i> Dashboard
+    </a>
+    <a routerLink="/lost" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">
+      <i class="fas fa-search"></i> Lost Items
+    </a>
+    <a routerLink="/found" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">
+      <i class="fas fa-handshake"></i> Found Items
+    </a>
+    <a routerLink="/reports" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">
+      <i class="fas fa-file-alt"></i> Reports
+    </a>
+  </nav>
+</aside>

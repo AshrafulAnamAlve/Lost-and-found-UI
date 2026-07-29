@@ -1,0 +1,83 @@
+<app-navbar></app-navbar>
+
+<div class="dash-hero">
+  <h1>Welcome back, {{ username || 'there' }}! 👋</h1>
+  <p>Here's what's happening in your Lost &amp; Found community today.</p>
+</div>
+
+<!-- Stats -->
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="s-icon red"><i class="fas fa-search-minus"></i></div>
+    <div class="s-info"><p>Lost Items</p><h3>{{ stats.lost }}</h3></div>
+  </div>
+  <div class="stat-card">
+    <div class="s-icon green"><i class="fas fa-search-plus"></i></div>
+    <div class="s-info"><p>Found Items</p><h3>{{ stats.found }}</h3></div>
+  </div>
+  <div class="stat-card">
+    <div class="s-icon gold"><i class="fas fa-handshake"></i></div>
+    <div class="s-info"><p>Total Reports</p><h3>{{ stats.total }}</h3></div>
+  </div>
+  <div class="stat-card">
+    <div class="s-icon blue"><i class="fas fa-user"></i></div>
+    <div class="s-info"><p>My Reports</p><h3>{{ stats.mine }}</h3></div>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="quick-row">
+  <button class="q-btn lost"   routerLink="/lost">  <i class="fas fa-plus-circle"></i> Report Lost Item</button>
+  <button class="q-btn found"  routerLink="/found"> <i class="fas fa-plus-circle"></i> Report Found Item</button>
+  <button class="q-btn browse" routerLink="/reports"><i class="fas fa-list-ul"></i>   Browse All Items</button>
+</div>
+
+<!-- Main panels -->
+<div class="dash-main">
+  <!-- AI Matches -->
+  <div class="dash-panel">
+    <div class="panel-title">
+      <i class="fas fa-robot" style="color:var(--accent)"></i>
+      AI Suggested Matches
+      <span class="ai-pill">AI</span>
+    </div>
+    <div *ngIf="loadingMatches" class="spinner"></div>
+    <ng-container *ngIf="!loadingMatches">
+      <div *ngFor="let m of aiMatches" class="match-row" [routerLink]="['/productDetails','found',m.id]">
+        <div class="m-img">
+          <img *ngIf="m.imageUrl" [src]="resolveImg(m.imageUrl)" alt="" (error)="$event.target.style.display='none'">
+          <i *ngIf="!m.imageUrl" class="fas fa-image"></i>
+        </div>
+        <div class="m-info"><h4>{{ m.itemName || 'Found Item' }}</h4><p>{{ m.location }} {{ m.category ? '• ' + m.category : '' }}</p></div>
+        <span class="m-pct">{{ m.matchPercent }}%</span>
+      </div>
+      <div *ngIf="aiMatches.length === 0" class="empty-panel">
+        <i class="fas fa-robot"></i>
+        <p>Report a lost item to see AI matches here</p>
+      </div>
+    </ng-container>
+  </div>
+
+  <!-- Recent Activity -->
+  <div class="dash-panel">
+    <div class="panel-title">
+      <i class="fas fa-clock" style="color:var(--accent2)"></i>
+      Recent Activity
+    </div>
+    <div *ngIf="loadingRecent" class="spinner"></div>
+    <ng-container *ngIf="!loadingRecent">
+      <div *ngFor="let item of recentItems" class="recent-row"
+           [routerLink]="['/productDetails', item.type, item.id]">
+        <span>{{ item.itemName }}</span>
+        <div style="display:flex;align-items:center;gap:.5rem">
+          <span class="r-badge" [class.lost]="item.type==='lost'" [class.found]="item.type==='found'">{{ item.type }}</span>
+          <span style="font-size:.72rem;color:var(--muted)">{{ (item.dateLost || item.dateFound) | date:'MMM d' }}</span>
+        </div>
+      </div>
+      <div *ngIf="recentItems.length === 0" class="empty-panel">
+        <i class="fas fa-inbox"></i>
+        <p>No activity yet</p>
+      </div>
+    </ng-container>
+  </div>
+</div>

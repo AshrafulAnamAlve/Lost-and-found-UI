@@ -1,0 +1,76 @@
+<app-navbar></app-navbar>
+
+<div class="msgr">
+
+  <!-- LEFT: conversation list -->
+  <aside class="conv-list">
+    <div class="conv-head"><i class="fas fa-comments"></i> Messages</div>
+
+    <div class="conv-empty" *ngIf="conversations().length === 0">
+      <i class="fas fa-inbox"></i>
+      <p>No conversations yet.<br>Start chatting from a match!</p>
+    </div>
+
+    <div class="conv-item" *ngFor="let c of conversations()"
+         [class.active]="activePartner() === c.partnerId"
+         (click)="openConversation(c)">
+      <div class="avatar">{{ initials(c.partnerName) }}</div>
+      <div class="conv-meta">
+        <div class="conv-top">
+          <span class="conv-name">{{ c.partnerName }}</span>
+          <span class="conv-time">{{ c.lastAt | date:'shortTime' }}</span>
+        </div>
+        <div class="conv-bottom">
+          <span class="conv-preview">{{ c.lastMessage }}</span>
+          <span class="conv-badge" *ngIf="c.unread > 0">{{ c.unread }}</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- RIGHT: active thread -->
+  <section class="thread" *ngIf="activePartner() != null; else noThread">
+    <div class="thread-head">
+      <div class="avatar">{{ initials(partnerName) }}</div>
+      <div class="th-info">
+        <h3>{{ partnerName || 'Conversation' }}</h3>
+        <small *ngIf="ctx.itemName"><i class="fas fa-tag"></i> Re: {{ ctx.itemName }}</small>
+      </div>
+      <div class="th-call-btns">
+        <button class="th-call" (click)="startCall('audio')" title="Voice call"><i class="fas fa-phone"></i></button>
+        <button class="th-call video" (click)="startCall('video')" title="Video call"><i class="fas fa-video"></i></button>
+      </div>
+    </div>
+
+    <div class="thread-body" #scrollBox>
+      <div class="thread-empty" *ngIf="messages().length === 0">
+        <i class="fas fa-comment-dots"></i>
+        <p>Say hello 👋</p>
+      </div>
+      <div *ngFor="let m of messages()" class="bubble-row" [class.mine]="m.senderId === myId">
+        <div class="bubble" [class.mine]="m.senderId === myId">
+          <span class="bubble-text">{{ m.content }}</span>
+          <span class="bubble-time">{{ m.sentAt | date:'shortTime' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <form class="thread-input" (ngSubmit)="send()">
+      <input [(ngModel)]="draft" name="draft" placeholder="Type a message…" autocomplete="off">
+      <button type="submit" [disabled]="!draft.trim()" aria-label="Send">
+        <i class="fas fa-paper-plane"></i>
+      </button>
+    </form>
+  </section>
+
+  <ng-template #noThread>
+    <section class="thread thread-placeholder">
+      <div class="ph-inner">
+        <i class="fas fa-comments"></i>
+        <h3>Your Messages</h3>
+        <p>Select a conversation, or start one from a match.</p>
+      </div>
+    </section>
+  </ng-template>
+
+</div>

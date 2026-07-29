@@ -1,0 +1,249 @@
+<div class="page-wrapper">
+  <div class="back-btn" (click)="goBack()">
+    <i class="fas fa-arrow-left"></i> Back to Items
+  </div>
+
+  <div *ngIf="!item" style="text-align:center;padding:5rem">
+    <div class="spinner"></div>
+  </div>
+
+  <div class="detail-layout" *ngIf="item">
+
+    <!-- ══ LEFT: Item Detail ══════════════════════════════════════════════ -->
+    <div class="detail-main">
+      <div class="detail-card">
+
+        <div class="detail-img-wrap">
+          <img *ngIf="item.image" class="detail-img" [src]="item.image" [alt]="item.itemName" (error)="imgError($event)">
+          <div *ngIf="!item.image" class="img-placeholder">
+            <i class="fas" [class.fa-search-minus]="item.type==='lost'" [class.fa-search-plus]="item.type==='found'"></i>
+          </div>
+          <span class="type-ribbon" [class.lost]="item.type==='lost'" [class.found]="item.type==='found'">
+            <i class="fas" [class.fa-search-minus]="item.type==='lost'" [class.fa-search-plus]="item.type==='found'"></i>
+            {{ item.type }}
+          </span>
+        </div>
+
+        <div class="detail-body">
+          <h1 class="item-name">{{ item.itemName }}</h1>
+
+          <div class="meta-grid">
+            <div class="meta-cell" *ngIf="item.category">
+              <i class="fas fa-tag"></i><div><small>Category</small><span>{{ item.category }}</span></div>
+            </div>
+            <div class="meta-cell" *ngIf="item.color">
+              <i class="fas fa-palette"></i><div><small>Color</small><span>{{ item.color }}</span></div>
+            </div>
+            <div class="meta-cell" *ngIf="item.brand">
+              <i class="fas fa-copyright"></i><div><small>Brand</small><span>{{ item.brand }}</span></div>
+            </div>
+            <div class="meta-cell" *ngIf="item.location">
+              <i class="fas fa-map-marker-alt"></i><div><small>Location</small><span>{{ item.location }}</span></div>
+            </div>
+            <div class="meta-cell" *ngIf="item.dateLost || item.dateFound">
+              <i class="fas fa-calendar"></i>
+              <div><small>Date</small><span>{{ (item.dateLost || item.dateFound) | date:'mediumDate' }}</span></div>
+            </div>
+            <div class="meta-cell" *ngIf="item.Reward">
+              <i class="fas fa-gift"></i><div><small>Reward</small><span>{{ item.Reward }}</span></div>
+            </div>
+          </div>
+
+          <div class="desc-block" *ngIf="item.description">
+            <h4><i class="fas fa-align-left"></i> Description</h4>
+            <p>{{ item.description }}</p>
+          </div>
+
+          <!-- Contact the reporter of THIS item -->
+          <div class="contact-block">
+            <h4><i class="fas fa-address-card"></i> Contact Person</h4>
+            <div class="contact-grid">
+              <div class="contact-chip person" *ngIf="item.userName">
+                <i class="fas fa-user"></i>
+                <div><small>Name</small><span>{{ item.userName }}</span></div>
+              </div>
+              <a class="contact-chip phone" *ngIf="item.phoneNumber" [href]="'tel:'+item.phoneNumber">
+                <i class="fas fa-phone"></i>
+                <div><small>Phone</small><span>{{ item.phoneNumber }}</span></div>
+              </a>
+              <a class="contact-chip email" *ngIf="item.email" [href]="'mailto:'+item.email">
+                <i class="fas fa-envelope"></i>
+                <div><small>Email</small><span>{{ item.email }}</span></div>
+              </a>
+              <div class="contact-chip alt" *ngIf="item.altContact">
+                <i class="fas fa-phone-alt"></i>
+                <div><small>Alt. Contact</small><span>{{ item.altContact }}</span></div>
+              </div>
+            </div>
+
+            <!-- Quick message -->
+            <div class="quick-msg">
+              <h5>Send a quick message</h5>
+              <textarea [(ngModel)]="contactMessage" rows="3"
+                [placeholder]="item.type === 'found'
+                  ? 'Hi, I believe this item is mine. I can verify ownership by describing it…'
+                  : 'Hello, I found an item that may belong to you. Let\'s connect!'">
+              </textarea>
+              <div class="msg-btn-row">
+                <button class="btn-email" (click)="sendContact()" [disabled]="!contactMessage.trim()">
+                  <i class="fas fa-paper-plane"></i> Send via Email
+                </button>
+                <a class="btn-call" *ngIf="item.phoneNumber" [href]="'tel:'+item.phoneNumber">
+                  <i class="fas fa-phone"></i> Call Now
+                </a>
+                <button class="btn-chat-pd" *ngIf="item.userId && item.userId !== myId"
+                        (click)="chatWith(item.userId, item.userName, item.id, item.type, item.itemName)">
+                  <i class="fas fa-comment-dots"></i> Chat
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ RIGHT: AI Matches ══════════════════════════════════════════════ -->
+    <div class="matches-sidebar">
+      <div class="sidebar-header">
+        <i class="fas fa-robot"></i>
+        AI Suggested Matches
+        <span class="ai-tag">AI</span>
+      </div>
+
+      <div class="sidebar-loading" *ngIf="matchesLoading">
+        <div class="spinner-sm"></div><span>Searching for matches…</span>
+      </div>
+
+      <div class="no-matches" *ngIf="!matchesLoading && matches.length === 0">
+        <i class="fas fa-search"></i>
+        <p>No strong matches yet. New matches appear automatically as items are reported.</p>
+      </div>
+
+      <div class="match-list" *ngIf="!matchesLoading && matches.length > 0">
+        <div class="match-row" *ngFor="let m of matches" (click)="openMatch(m)">
+          <div class="match-thumb">
+            <img *ngIf="m.imageUrl" [src]="resolveImg(m.imageUrl)" alt="" (error)="$event.target.style.display='none'">
+            <i *ngIf="!m.imageUrl" class="fas fa-image"></i>
+          </div>
+          <div class="match-info">
+            <h4>{{ m.itemName }}</h4>
+            <p>{{ m.location }}<span *ngIf="m.category"> · {{ m.category }}</span></p>
+          </div>
+          <div class="pct-pill" [class]="'pct-' + pctClass(m.matchPercent || 0)">
+            {{ m.matchPercent }}%
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /detail-layout -->
+</div>
+
+<!-- ══ MATCH DETAIL MODAL ════════════════════════════════════════════════ -->
+<div class="modal-backdrop" *ngIf="selectedMatch" (click)="closeMatch()">
+  <div class="match-modal" (click)="$event.stopPropagation()">
+
+    <button class="modal-close-btn" (click)="closeMatch()"><i class="fas fa-times"></i></button>
+
+    <!-- Match % banner -->
+    <div class="modal-score-banner" [class]="'banner-' + pctClass(selectedMatch.matchPercent || 0)">
+      <i class="fas fa-robot"></i>
+      <span>AI Confidence: <strong>{{ selectedMatch.matchPercent }}% match</strong></span>
+      <div class="score-track"><div class="score-fill" [style.width.%]="selectedMatch.matchPercent"></div></div>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- Image + title -->
+      <div class="modal-item-header">
+        <div class="modal-img">
+          <img *ngIf="selectedMatch.imageUrl" [src]="resolveImg(selectedMatch.imageUrl)" alt=""
+               (error)="$event.target.style.display='none'">
+          <i *ngIf="!selectedMatch.imageUrl" class="fas fa-image"></i>
+        </div>
+        <div class="modal-item-info">
+          <span class="modal-type-badge" [class.found]="itemType==='lost'" [class.lost]="itemType==='found'">
+            {{ itemType === 'lost' ? 'Found Item' : 'Lost Item' }}
+          </span>
+          <h2>{{ selectedMatch.itemName }}</h2>
+          <div class="modal-tags">
+            <span *ngIf="selectedMatch.category"><i class="fas fa-tag"></i>{{ selectedMatch.category }}</span>
+            <span *ngIf="selectedMatch.color"><i class="fas fa-palette"></i>{{ selectedMatch.color }}</span>
+            <span *ngIf="selectedMatch.brand"><i class="fas fa-copyright"></i>{{ selectedMatch.brand }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Meta -->
+      <div class="modal-meta-row">
+        <div class="modal-meta-cell" *ngIf="selectedMatch.location">
+          <i class="fas fa-map-marker-alt"></i>
+          <div><small>Location</small><span>{{ selectedMatch.location }}</span></div>
+        </div>
+        <div class="modal-meta-cell" *ngIf="selectedMatch.dateFound || selectedMatch.dateLost">
+          <i class="fas fa-calendar"></i>
+          <div><small>Date</small><span>{{ (selectedMatch.dateFound || selectedMatch.dateLost) | date:'mediumDate' }}</span></div>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div class="modal-desc" *ngIf="selectedMatch.description">
+        <h4>Description</h4>
+        <p>{{ selectedMatch.description }}</p>
+      </div>
+
+      <!-- Contact section -->
+      <div class="modal-contact-section">
+        <h4><i class="fas fa-address-card"></i> Contact the {{ itemType === 'lost' ? 'Finder' : 'Owner' }}</h4>
+
+        <div class="modal-contact-cards">
+          <div class="m-contact-card" *ngIf="selectedMatch.userName">
+            <div class="m-c-icon person"><i class="fas fa-user"></i></div>
+            <div><small>Name</small><p>{{ selectedMatch.userName }}</p></div>
+          </div>
+          <a class="m-contact-card clickable" *ngIf="selectedMatch.phoneNumber" [href]="'tel:'+selectedMatch.phoneNumber">
+            <div class="m-c-icon phone"><i class="fas fa-phone"></i></div>
+            <div><small>Phone (tap to call)</small><p>{{ selectedMatch.phoneNumber }}</p></div>
+          </a>
+          <a class="m-contact-card clickable" *ngIf="selectedMatch.email" [href]="'mailto:'+selectedMatch.email">
+            <div class="m-c-icon email"><i class="fas fa-envelope"></i></div>
+            <div><small>Email (tap to send)</small><p>{{ selectedMatch.email }}</p></div>
+          </a>
+        </div>
+
+        <!-- Message box -->
+        <div class="modal-msg-box" *ngIf="!msgSent">
+          <label>Write a message</label>
+          <textarea [(ngModel)]="contactMessage" rows="3"
+            [placeholder]="itemType === 'lost'
+              ? 'Hi, I believe the item you found belongs to me. I can describe it in detail to verify…'
+              : 'Hello, I lost an item that may match yours. Can we connect to confirm?'">
+          </textarea>
+          <div class="modal-action-row">
+            <button class="btn-modal-email" (click)="sendContact()" [disabled]="!contactMessage.trim()">
+              <i class="fas fa-paper-plane"></i> Send via Email
+            </button>
+            <a class="btn-modal-call" *ngIf="selectedMatch.phoneNumber" [href]="'tel:'+selectedMatch.phoneNumber">
+              <i class="fas fa-phone"></i> Call
+            </a>
+            <button class="btn-modal-chat" *ngIf="selectedMatch.userId && selectedMatch.userId !== myId"
+                    (click)="chatWith(selectedMatch.userId, selectedMatch.userName, selectedMatch.id, itemType === 'lost' ? 'found' : 'lost', selectedMatch.itemName)">
+              <i class="fas fa-comment-dots"></i> Chat
+            </button>
+          </div>
+        </div>
+
+        <div class="msg-sent-banner" *ngIf="msgSent">
+          <i class="fas fa-check-circle"></i> Message sent! The {{ itemType === 'lost' ? 'finder' : 'owner' }} will be in touch.
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-full-page" (click)="goToMatchPage()">
+          <i class="fas fa-external-link-alt"></i> View Full Item Page
+        </button>
+        <button class="btn-modal-close" (click)="closeMatch()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,180 @@
+<app-sidenav></app-sidenav>
+
+<div class="form-hero">
+  <h1><i class="fas fa-search-plus"></i> Report a Found Item</h1>
+  <p>You've done something kind — our AI will instantly search for the possible owner</p>
+</div>
+
+<!-- ══ SAFETY WARNING FOR FINDERS ═══════════════════════════════════════════ -->
+<div class="finder-warning">
+  <i class="fas fa-shield-halved"></i>
+  <div class="fw-text">
+    <strong>Verify ownership before returning the item.</strong>
+    Anyone can claim an item. Before you hand it over, make sure the person is the
+    real owner — ask them to describe unique details, show proof of purchase or a
+    matching ID, or confirm specifics only the true owner would know. Never return
+    an item based on a guess.
+  </div>
+</div>
+
+<!-- ══ AI MATCH PANEL (matched LOST items → possible owners) ═════════════════ -->
+<div class="ai-match-panel" *ngIf="showMatches">
+  <div class="ai-match-panel-inner">
+    <div class="ai-panel-header">
+      <div class="ai-panel-title">
+        <i class="fas fa-robot"></i>
+        AI Found {{ aiMatches.length }} Possible Owner{{ aiMatches.length > 1 ? 's' : '' }}!
+        <span class="ai-tag">AI</span>
+      </div>
+      <button class="ai-panel-close" (click)="dismissMatches()"><i class="fas fa-times"></i></button>
+    </div>
+    <p class="ai-panel-sub">These people have reported losing a similar item. Please reach out to them directly!</p>
+    <div class="ai-panel-caution">
+      <i class="fas fa-triangle-exclamation"></i>
+      <span>Before returning the item, verify the claimant is the real owner — ask for unique details, proof of purchase, or ID. Don't hand it over on a guess.</span>
+    </div>
+    <div class="ai-cards-row">
+      <div class="ai-match-card" *ngFor="let m of aiMatches" (click)="goToMatch(m.id)">
+        <div class="ai-card-img">
+          <img *ngIf="m.imageUrl" [src]="resolveImg(m.imageUrl)" alt="" (error)="$event.target.style.display='none'">
+          <i *ngIf="!m.imageUrl" class="fas fa-image"></i>
+        </div>
+        <div class="ai-card-body">
+          <h4>{{ m.itemName || 'Lost Item' }}</h4>
+          <p class="ai-card-meta"><i class="fas fa-map-marker-alt"></i> {{ m.location }}</p>
+          <p class="ai-card-meta" *ngIf="m.category"><i class="fas fa-tag"></i> {{ m.category }}</p>
+          <div class="ai-card-footer">
+            <span class="match-pct"
+              [style.background]="(m.matchPercent||0) >= 60 ? 'rgba(22,160,133,.12)' : (m.matchPercent||0) >= 35 ? 'rgba(243,156,18,.12)' : 'rgba(108,117,125,.1)'"
+              [style.color]="(m.matchPercent||0) >= 60 ? 'var(--found)' : (m.matchPercent||0) >= 35 ? 'var(--gold)' : 'var(--muted)'">
+              {{ m.matchPercent }}% match
+            </span>
+            <span class="view-link">Contact <i class="fas fa-arrow-right"></i></span>
+          </div>
+          <div class="ai-card-contact" *ngIf="m.phoneNumber">
+            <i class="fas fa-phone"></i> {{ m.phoneNumber }}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ai-panel-actions">
+      <button class="btn-view-all" (click)="router.navigate(['/reports'])">
+        <i class="fas fa-list"></i> Browse All Lost Items
+      </button>
+      <button class="btn-dismiss" (click)="dismissMatches()">Dismiss</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ FORM ═════════════════════════════════════════════════════════════════ -->
+<div class="form-container">
+  <form [formGroup]="foundforum">
+
+    <div class="form-card">
+      <div class="section-title"><i class="fas fa-info-circle"></i> Item Information</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Item Name *</label>
+          <input type="text" formControlName="itemName" placeholder="e.g. Black Leather Wallet, iPhone 14 Pro">
+        </div>
+        <div class="form-group">
+          <label>Category *</label>
+          <select formControlName="category">
+            <option value="">Select category</option>
+            <option value="wallet">Wallet / Purse</option>
+            <option value="phone">Mobile Phone</option>
+            <option value="laptop">Laptop / Tablet</option>
+            <option value="keys">Keys</option>
+            <option value="bag">Bag / Backpack</option>
+            <option value="documents">Documents / ID / Passport</option>
+            <option value="jewelry">Jewelry / Watch</option>
+            <option value="electronics">Other Electronics</option>
+            <option value="clothing">Clothing / Shoes</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Brand / Model</label>
+          <input type="text" formControlName="brand" placeholder="e.g. Apple, Samsung">
+        </div>
+        <div class="form-group">
+          <label>Primary Color</label>
+          <input type="text" formControlName="color" placeholder="e.g. Black, Silver">
+        </div>
+        <div class="form-group full-width">
+          <label>Description *</label>
+          <textarea formControlName="description" rows="3"
+            placeholder="Describe the item — any distinguishing features, labels, or markings"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div class="section-title"><i class="fas fa-map-marker-alt"></i> Location &amp; Time</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Found At *</label>
+          <input type="text" formControlName="location" placeholder="e.g. BUBT Main Gate, Cafeteria, Room 201">
+        </div>
+        <div class="form-group">
+          <label>Date Found *</label>
+          <input type="date" formControlName="dateFound">
+        </div>
+        <div class="form-group">
+          <label>Approximate Time</label>
+          <input type="time" formControlName="timeLost">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div class="section-title"><i class="fas fa-camera"></i> Item Photo *</div>
+      <div class="upload-zone"
+           (click)="fileInput.click()"
+           (dragover)="onDragOver($event)"
+           (dragleave)="onDragLeave()"
+           (drop)="onDrop($event)">
+        <i class="fas fa-cloud-upload-alt"></i>
+        <p>Click to upload or drag &amp; drop</p>
+        <small>A photo helps owners confirm their item — JPG, PNG up to 10 MB</small>
+      </div>
+      <input #fileInput type="file" accept="image/*" multiple hidden (change)="onFileSelect($event)">
+      <div class="preview-grid">
+        <div class="preview-item" *ngFor="let img of previews; let i = index">
+          <img [src]="img" alt="preview">
+          <div class="remove-img" (click)="removeImage(i)">&times;</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div class="section-title"><i class="fas fa-address-card"></i> Your Contact Information</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Your Name *</label>
+          <input type="text" formControlName="userName" placeholder="Full name">
+        </div>
+        <div class="form-group">
+          <label>Email *</label>
+          <input type="email" formControlName="email" placeholder="your@email.com">
+        </div>
+        <div class="form-group">
+          <label>Phone Number *</label>
+          <input type="tel" formControlName="phoneNumber" placeholder="+880...">
+        </div>
+        <div class="form-group">
+          <label>Alternative Contact</label>
+          <input type="tel" formControlName="altContact" placeholder="Secondary number">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="button" class="btn-submit" [disabled]="isSubmitting" (click)="foundSubmit()">
+        <i class="fas" [class.fa-paper-plane]="!isSubmitting" [class.fa-spinner]="isSubmitting"
+           [class.fa-spin]="isSubmitting"></i>
+        {{ isSubmitting ? 'Submitting…' : 'Submit Found Report' }}
+      </button>
+    </div>
+  </form>
+</div>

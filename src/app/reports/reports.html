@@ -1,0 +1,92 @@
+<app-navbar></app-navbar>
+
+<div class="reports-header">
+  <h1><i class="fas fa-list-ul"></i> Browse Lost &amp; Found Items</h1>
+  <p>Search through all reports — our AI highlights the best matches for you</p>
+</div>
+
+<div class="filters-bar">
+  <div class="tab-group">
+    <button class="tab-btn"
+      [class.active-all]="activeTab === 'all'"
+      [class.active-lost]="activeTab === 'lost'"
+      [class.active-found]="activeTab === 'found'"
+      (click)="setTab('all')" [class.tab-btn]="true"
+      [style.background]="activeTab==='all'?'var(--accent2)':''"
+      [style.color]="activeTab==='all'?'#fff':''">All</button>
+    <button class="tab-btn"
+      [style.background]="activeTab==='lost'?'var(--accent)':''"
+      [style.color]="activeTab==='lost'?'#fff':''">
+      <span (click)="setTab('lost')">&#x26AA; Lost</span></button>
+    <button class="tab-btn"
+      [style.background]="activeTab==='found'?'var(--found)':''"
+      [style.color]="activeTab==='found'?'#fff':''">
+      <span (click)="setTab('found')">&#x26AB; Found</span></button>
+  </div>
+
+  <div class="search-wrap">
+    <i class="fas fa-search"></i>
+    <input type="text" [(ngModel)]="filters.keyword" (input)="search()" placeholder="Search by item name…">
+  </div>
+
+  <select class="filter-sel" [(ngModel)]="filters.category" (change)="search()">
+    <option value="">All Categories</option>
+    <option value="wallet">Wallet / Purse</option>
+    <option value="phone">Mobile Phone</option>
+    <option value="laptop">Laptop / Tablet</option>
+    <option value="keys">Keys</option>
+    <option value="bag">Bag / Backpack</option>
+    <option value="documents">Documents / ID</option>
+    <option value="jewelry">Jewelry / Watch</option>
+    <option value="electronics">Electronics</option>
+    <option value="clothing">Clothing</option>
+    <option value="other">Other</option>
+  </select>
+
+  <select class="filter-sel" [(ngModel)]="filters.location" (change)="search()">
+    <option value="">All Locations</option>
+    <option *ngFor="let loc of uniqueLocations">{{ loc }}</option>
+  </select>
+
+  <span class="results-count">{{ filteredItems.length }} item{{ filteredItems.length !== 1 ? 's' : '' }}</span>
+</div>
+
+<div class="items-grid">
+  <!-- Loading -->
+  <div class="spinner-wrap" *ngIf="loading">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Items -->
+  <ng-container *ngIf="!loading">
+    <div class="item-card" *ngFor="let item of filteredItems"
+         [routerLink]="['/productDetails', item.type, item.id]" [queryParams]="{ref:'reports'}">
+      <div class="item-img-wrap">
+        <img *ngIf="item.image" [src]="item.image" [alt]="item.title" (error)="imgError($event)">
+        <div *ngIf="!item.image" class="item-img-placeholder">
+          <i [class]="'fas fa-' + (item.type === 'lost' ? 'search-minus' : 'search-plus')"></i>
+        </div>
+        <span class="type-badge" [class.badge-lost]="item.type==='lost'" [class.badge-found]="item.type==='found'">
+          {{ item.type }}
+        </span>
+      </div>
+      <div class="item-body">
+        <div class="item-title">{{ item.title }}</div>
+        <div class="item-desc">{{ item.description }}</div>
+        <div class="item-footer">
+          <span class="meta-chip" *ngIf="item.category"><i class="fas fa-tag"></i>{{ item.category }}</span>
+          <span class="meta-chip" *ngIf="item.location"><i class="fas fa-map-marker-alt"></i>{{ item.location }}</span>
+          <span class="meta-chip" *ngIf="item.date"><i class="fas fa-calendar"></i>{{ item.date | date:'mediumDate' }}</span>
+        </div>
+        <button class="view-btn" type="button">View Details <i class="fas fa-arrow-right"></i></button>
+      </div>
+    </div>
+
+    <!-- Empty -->
+    <div class="empty-state" *ngIf="filteredItems.length === 0 && !loading">
+      <i class="fas fa-search"></i>
+      <h3>No items found</h3>
+      <p>Try adjusting your search or filters</p>
+    </div>
+  </ng-container>
+</div>

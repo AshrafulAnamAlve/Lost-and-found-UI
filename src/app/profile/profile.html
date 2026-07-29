@@ -1,0 +1,113 @@
+<app-navbar></app-navbar>
+<div class="page-wrapper">
+  <div class="container">
+    <div class="profile-card profile-display">
+      <div class="profile-top">
+        <div class="avatar-wrap" (click)="triggerAvatarUpload()" title="Change profile picture">
+          <img class="avatar-img" [src]="avatarUrl()" alt="Avatar">
+          <div class="avatar-overlay" [class.busy]="uploadingAvatar">
+            <i class="fas" [ngClass]="uploadingAvatar ? 'fa-spinner fa-spin' : 'fa-camera'"></i>
+            <span>{{ uploadingAvatar ? 'Uploading…' : 'Change photo' }}</span>
+          </div>
+          <input #avatarInput type="file" accept="image/*" hidden (change)="onAvatarSelected($event)">
+        </div>
+        <div class="profile-info">
+          <h2 class="profile-name">{{user.firstName+ ' '+user.lastName}}</h2>
+          <p class="profile-detail"><i class="fas fa-envelope"></i> {{user.email}}</p>
+          <p class="profile-detail"><i class="fas fa-map-marker-alt"></i> {{user.city}}, Bangladesh</p>
+          <p class="profile-detail"><i class="fas fa-calendar-alt"></i> Member since Jan 2026</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Matches for the user's items -->
+    <section class="ai-matches">
+      <div class="ai-head">
+        <h3><i class="fas fa-robot"></i> AI Matches for Your Items</h3>
+        <a class="ai-head-link" routerLink="/matches">Open notifications <i class="fas fa-arrow-right"></i></a>
+      </div>
+
+      <div *ngIf="loadingMatches" class="ai-loading">Searching for matches…</div>
+
+      <div *ngIf="!loadingMatches && aiGroups.length === 0" class="ai-empty">
+        <i class="fas fa-magnifying-glass"></i>
+        <p>No matches yet. We'll keep comparing your items against new reports.</p>
+      </div>
+
+      <div class="ai-group" *ngFor="let g of aiGroups">
+        <div class="ai-group-head">
+          <span class="ai-tag" [class.lost]="g.type === 'lost'" [class.found]="g.type === 'found'">
+            {{ g.type === 'lost' ? 'You lost' : 'You found' }}
+          </span>
+          <span class="ai-item-name">{{ g.itemName }}</span>
+          <span class="ai-count">{{ g.matches.length }} possible {{ g.matches.length > 1 ? 'matches' : 'match' }}</span>
+        </div>
+
+        <div class="ai-match-row" *ngFor="let m of g.matches" (click)="viewMatch(g.type, m.id)">
+          <div class="ai-thumb">
+            <img *ngIf="m.imageUrl" [src]="resolveImg(m.imageUrl)" alt="" (error)="$event.target.style.display='none'">
+            <i *ngIf="!m.imageUrl" class="fas fa-image"></i>
+          </div>
+
+          <div class="ai-match-body">
+            <div class="ai-match-top">
+              <span class="ai-match-name">{{ m.itemName }}</span>
+              <span class="ai-conf" [class]="'conf-' + confKey(m)">{{ confLabel(m) }}</span>
+            </div>
+            <p class="ai-match-sub">
+              Matches your {{ g.type }} item — found in {{ m.location || 'unknown location' }}
+            </p>
+            <div class="ai-reason-chips" *ngIf="m.matchReasons?.length">
+              <span class="ai-chip" *ngFor="let r of topReasons(m)" [class]="'rc-' + r.status">
+                <i class="fas" [ngClass]="reasonIcon(r.status)"></i>
+                {{ r.label }}<ng-container *ngIf="r.detail">: {{ r.detail }}</ng-container>
+              </span>
+            </div>
+          </div>
+
+          <div class="ai-pct-wrap">
+            <div class="ai-pct" [class]="'conf-' + confKey(m)">{{ m.matchPercent }}%</div>
+            <span class="ai-pct-label">match</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Posted Items (user's reports) -->
+    <section class="posted-items" *ngIf="userItems.length > 0; else noReports">
+      <h3>Your Posted Items</h3>
+      <div class="report-cards">
+        <article class="report-card" *ngFor="let item of userItems">
+          <div class="card-image">
+            <img [src]="item.image" (error)="imgError($event)" alt="{{item.title}}">
+            <span class="badge" [ngClass]="item.type === 'lost' ? 'item-lost' : 'item-found'">
+              {{ item.type | uppercase }}
+            </span>
+            <div class="card-controls">
+              <button class="icon edit" title="Edit" (click)="editItem(item)"><i class="fas fa-edit"></i></button>
+              <button class="icon delete" title="Delete" (click)="deleteItem(item)"><i class="fas fa-trash"></i></button>
+            </div>
+          </div>
+          <div class="card-body">
+            <h4 class="card-title">{{ item.title }}</h4>
+            <p class="card-sub">{{ item.location }}</p>
+            <div class="card-meta">
+              <i class="fas fa-map-marker-alt"></i> {{ item.location }} &nbsp;
+              <i class="fas fa-calendar-alt"></i> {{ item.date | date:'mediumDate' }}
+            </div>
+            <button class="view-btn" [routerLink]="['/productDetails', item.type, item.id]" [queryParams]="{ref: 'profile'}">
+              View Details
+            </button>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <ng-template #noReports>
+      <p class="no-items" style="color:#eaf4ff; margin-top:20px;">
+        You haven't posted any items yet.
+      </p>
+    </ng-template>
+
+  </div>
+</div>

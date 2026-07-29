@@ -1,0 +1,143 @@
+<app-navbar></app-navbar>
+
+<div class="matches-page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="header-icon"><i class="fas fa-robot"></i></div>
+      <div>
+        <h1>AI Match Results</h1>
+        <p>Items our AI found that match your reports</p>
+      </div>
+    </div>
+    <button class="btn-clear" *ngIf="groups.length > 0" (click)="clearAll()">
+      <i class="fas fa-trash-alt"></i> Clear All
+    </button>
+  </div>
+
+  <!-- Empty state -->
+  <div class="empty-state" *ngIf="groups.length === 0">
+    <div class="empty-icon"><i class="fas fa-robot"></i></div>
+    <h2>No Matches Yet</h2>
+    <p>When you report a lost item, AI will automatically search for matches and show them here.</p>
+    <div class="empty-actions">
+      <button class="btn-action lost" routerLink="/lost"><i class="fas fa-search-minus"></i> Report Lost Item</button>
+      <button class="btn-action found" routerLink="/found"><i class="fas fa-search-plus"></i> Report Found Item</button>
+    </div>
+  </div>
+
+  <!-- Match Groups -->
+  <div class="groups-list">
+    <div class="match-group" *ngFor="let g of groups">
+
+      <!-- Group header -->
+      <div class="group-header">
+        <div class="group-meta">
+          <span class="my-item-badge" [class.lost]="g.myItemType === 'lost'" [class.found]="g.myItemType === 'found'">
+            <i class="fas" [class.fa-search-minus]="g.myItemType === 'lost'" [class.fa-search-plus]="g.myItemType === 'found'"></i>
+            {{ g.myItemType === 'lost' ? 'You Lost' : 'You Found' }}
+          </span>
+          <div class="group-headline">
+            <span class="group-item-name">{{ g.myItemName }}</span>
+            <span class="group-sub">
+              We compared your {{ g.myItemType }} report against {{ matchedKind(g.myItemType) }} items
+            </span>
+          </div>
+        </div>
+        <div class="group-right">
+          <span class="match-count">{{ g.matches.length }} match{{ g.matches.length > 1 ? 'es' : '' }}</span>
+          <span class="time-ago"><i class="fas fa-clock"></i> {{ timeAgo(g.timestamp) }}</span>
+        </div>
+      </div>
+
+      <!-- Cards -->
+      <div class="cards-grid">
+        <div class="match-card" *ngFor="let m of g.matches" (click)="goToItem(g.myItemType, m.id)">
+
+          <!-- Image -->
+          <div class="card-img-wrap">
+            <img *ngIf="m.imageUrl" [src]="resolveImg(m.imageUrl)" alt="" (error)="$event.target.style.display='none'">
+            <div class="card-img-placeholder" *ngIf="!m.imageUrl">
+              <i class="fas fa-image"></i>
+            </div>
+            <!-- Match % badge + confidence -->
+            <div class="pct-badge" [class]="'pct-' + pctClass(m.matchPercent)">
+              {{ m.matchPercent }}%
+            </div>
+            <div class="conf-badge" [class]="'conf-' + confKey(m)">
+              <i class="fas fa-shield-halved"></i> {{ confLabel(m) }}
+            </div>
+          </div>
+
+          <div class="card-body">
+            <h3 class="card-title">{{ m.itemName }}</h3>
+
+            <!-- Plain-language explanation of the match -->
+            <p class="match-sentence">{{ matchSentence(g, m) }}</p>
+
+            <div class="card-tags">
+              <span class="tag" *ngIf="m.category"><i class="fas fa-tag"></i>{{ m.category }}</span>
+              <span class="tag" *ngIf="m.color"><i class="fas fa-circle" [style.color]="m.color.toLowerCase()"></i>{{ m.color }}</span>
+            </div>
+
+            <p class="card-desc" *ngIf="m.description">{{ m.description }}</p>
+
+            <div class="card-meta">
+              <span *ngIf="m.location"><i class="fas fa-map-marker-alt"></i>{{ m.location }}</span>
+              <span *ngIf="m.dateFound || m.dateLost">
+                <i class="fas fa-calendar"></i>{{ (m.dateFound || m.dateLost) | date:'MMM d, y' }}
+              </span>
+            </div>
+
+            <!-- Match score bar -->
+            <div class="score-bar-wrap">
+              <div class="score-bar-label">
+                <span>AI Confidence</span>
+                <span class="score-val" [class]="'score-' + pctClass(m.matchPercent)">{{ m.matchPercent }}%</span>
+              </div>
+              <div class="score-bar-track">
+                <div class="score-bar-fill" [class]="'fill-' + pctClass(m.matchPercent)"
+                     [style.width.%]="m.matchPercent"></div>
+              </div>
+            </div>
+
+            <!-- Why it matches: explainable per-field signals -->
+            <div class="reasons" *ngIf="m.matchReasons?.length">
+              <span class="reasons-title"><i class="fas fa-lightbulb"></i> Why this matches</span>
+              <div class="reason-chips">
+                <span class="reason-chip" *ngFor="let r of sortedReasons(m)" [class]="'rc-' + r.status">
+                  <i class="fas" [ngClass]="reasonIcon(r.status)"></i>
+                  {{ r.label }}<ng-container *ngIf="r.detail">: <b>{{ r.detail }}</b></ng-container>
+                </span>
+              </div>
+            </div>
+
+            <!-- Contact -->
+            <div class="card-contact" *ngIf="m.userName || m.phoneNumber">
+              <div class="contact-row" *ngIf="m.userName">
+                <i class="fas fa-user"></i><span>{{ m.userName }}</span>
+              </div>
+              <div class="contact-row" *ngIf="m.phoneNumber">
+                <i class="fas fa-phone"></i><span>{{ m.phoneNumber }}</span>
+              </div>
+              <div class="contact-row" *ngIf="m.email">
+                <i class="fas fa-envelope"></i><span>{{ m.email }}</span>
+              </div>
+            </div>
+
+            <button class="btn-chat" *ngIf="m.userId && m.userId !== myId" (click)="chat(g, m, $event)">
+              <i class="fas fa-comment-dots"></i> Chat with {{ m.userName || 'User' }}
+            </button>
+
+            <button class="btn-view">
+              View Details <i class="fas fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>

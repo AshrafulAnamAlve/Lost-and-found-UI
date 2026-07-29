@@ -1,0 +1,55 @@
+.navbar {
+  background: var(--primary);
+  padding: 0 2rem;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 64px;
+  position: sticky; top: 0; z-index: 1000;
+  box-shadow: 0 2px 24px rgba(0,0,0,.28);
+}
+.logo {
+  display: flex; align-items: center; gap: 10px;
+  font-family: 'Syne', sans-serif; font-size: 1.25rem; font-weight: 800;
+  color: #fff; text-decoration: none; cursor: pointer;
+}
+.logo-dot { width: 10px; height: 10px; background: var(--accent); border-radius: 50%; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.5)} }
+.nav-links { display: flex; align-items: center; gap: 2px; }
+.nav-link {
+  color: rgba(255,255,255,.7); text-decoration: none;
+  padding: 8px 15px; border-radius: 8px; font-size: .88rem; font-weight: 500;
+  transition: all .2s; display: flex; align-items: center; gap: 7px;
+}
+.nav-link:hover, .nav-link.active { color: #fff; background: rgba(255,255,255,.12); }
+.nav-link.lost-link:hover  { background: rgba(233,69,96,.2); color: #f87990; }
+.nav-link.found-link:hover { background: rgba(22,160,133,.2); color: #4ecdc4; }
+.nav-link i { font-size: .85rem; }
+.nav-right { display: flex; align-items: center; gap: 10px; }
+.user-chip {
+  display: flex; align-items: center; gap: 8px; color: #fff;
+  cursor: pointer; padding: 7px 14px; border-radius: 30px;
+  background: rgba(255,255,255,.09); transition: .2s; font-size: .88rem;
+}
+.user-chip:hover { background: rgba(255,255,255,.18); }
+.logout-btn {
+  color: rgba(255,255,255,.55); cursor: pointer; padding: 8px 12px;
+  border-radius: 8px; transition: .2s; font-size: .83rem; display: flex; align-items: center; gap: 5px;
+}
+.logout-btn:hover { color: var(--accent); background: rgba(233,69,96,.1); }
+
+/* Notification Bell */
+.bell-wrap {
+  position: relative; cursor: pointer;
+  width: 38px; height: 38px; border-radius: 10px;
+  background: rgba(255,255,255,.08); display: flex; align-items: center; justify-content: center;
+  color: rgba(255,255,255,.75); font-size: 1rem; transition: .2s;
+}
+.bell-wrap:hover { background: rgba(233,69,96,.2); color: var(--accent); }
+.bell-badge {
+  position: absolute; top: -4px; right: -4px;
+  background: var(--accent); color: #fff;
+  font-size: .6rem; font-weight: 800; min-width: 18px; height: 18px;
+  border-radius: 9px; display: flex; align-items: center; justify-content: center;
+  padding: 0 4px; border: 2px solid var(--primary);
+  animation: badgePop .3s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes badgePop { from { transform: scale(0); } to { transform: scale(1); } }

@@ -1,0 +1,40 @@
+<nav class="navbar">
+  <a class="logo" routerLink="/dashbord"><div class="logo-dot"></div>Lost &amp; Found</a>
+
+  <div class="nav-links">
+    <a class="nav-link" routerLink="/dashbord"  routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">
+      <i class="fas fa-home"></i> Dashboard
+    </a>
+    <a class="nav-link lost-link"  routerLink="/lost"    routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">
+      <i class="fas fa-search-minus"></i> Report Lost
+    </a>
+    <a class="nav-link found-link" routerLink="/found"   routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">
+      <i class="fas fa-search-plus"></i> Report Found
+    </a>
+    <a class="nav-link"            routerLink="/reports" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">
+      <i class="fas fa-list-ul"></i> Browse Items
+    </a>
+  </div>
+
+  <div class="nav-right">
+    <!-- Messages -->
+    <div class="bell-wrap" routerLink="/messages" title="Messages">
+      <i class="fas fa-comment-dots"></i>
+      <span class="bell-badge" *ngIf="msgUnread > 0">{{ msgUnread }}</span>
+    </div>
+
+    <!-- Notification Bell -->
+    <div class="bell-wrap" (click)="goToMatches()" title="AI Match Notifications">
+      <i class="fas fa-bell"></i>
+      <span class="bell-badge" *ngIf="unseenCount > 0">{{ unseenCount }}</span>
+    </div>
+
+    <a class="user-chip" routerLink="/profile">
+      <i class="fas fa-user-circle"></i>
+      <span>{{ displayName || 'My Profile' }}</span>
+    </a>
+    <span class="logout-btn" (click)="logout()">
+      <i class="fas fa-sign-out-alt"></i>
+    </span>
+  </div>
+</nav>

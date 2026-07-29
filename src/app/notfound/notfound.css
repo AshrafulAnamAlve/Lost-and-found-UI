@@ -1,0 +1,122 @@
+.not-found-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  text-align: center;
+  padding: 20px;
+}
+
+.content {
+  max-width: 600px;
+}
+
+.animation {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  margin: 0 auto 40px;
+}
+
+.magnifying-glass {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 140px;
+  height: 140px;
+  border: 18px solid white;
+  border-radius: 50%;
+  animation: searchPulse 3s infinite ease-in-out;
+}
+
+.lens {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+}
+
+.handle {
+  position: absolute;
+  bottom: -60px;
+  left: 50%;
+  width: 30px;
+  height: 90px;
+  background: white;
+  transform: translateX(-50%) rotate(45deg);
+  border-radius: 10px;
+}
+
+.question {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 5.5rem;
+  font-weight: bold;
+  color: white;
+  animation: spin 12s linear infinite;
+}
+
+h1 {
+  font-size: 8rem;
+  font-weight: 900;
+  line-height: 0.9;
+  margin-bottom: 10px;
+  background: linear-gradient(90deg, #ff9a9e, #fad0c4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+h2 {
+  font-size: 2.8rem;
+  margin-bottom: 20px;
+}
+
+p {
+  font-size: 1.3rem;
+  opacity: 0.9;
+  margin-bottom: 40px;
+}
+
+.home-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 50px;
+  background: white;
+  color: #2c7ab0;
+  font-size: 1.3rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 50px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+  }
+}
+
+/* Animations */
+@keyframes searchPulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(1.12); }
+}
+
+@keyframes spin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  h1 { font-size: 6rem; }
+  h2 { font-size: 2.2rem; }
+  .animation { width: 180px; height: 180px; }
+  .magnifying-glass { width: 120px; height: 120px; border-width: 14px; }
+  .question { font-size: 4.5rem; }
+}

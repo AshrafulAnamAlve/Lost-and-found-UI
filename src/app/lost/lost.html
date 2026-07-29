@@ -1,0 +1,164 @@
+<app-sidenav></app-sidenav>
+
+<div class="form-hero">
+  <h1><i class="fas fa-search-minus"></i> Report a Lost Item</h1>
+  <p>Provide as much detail as possible — our AI will instantly search for matches</p>
+</div>
+
+<!-- ══ AI MATCH PANEL (shown right after submit) ══════════════════════════════ -->
+<div class="ai-match-panel" *ngIf="showMatches">
+  <div class="ai-match-panel-inner">
+    <div class="ai-panel-header">
+      <div class="ai-panel-title">
+        <i class="fas fa-robot"></i>
+        AI Found {{ aiMatches.length }} Possible Match{{ aiMatches.length > 1 ? 'es' : '' }}!
+        <span class="ai-tag">AI</span>
+      </div>
+      <button class="ai-panel-close" (click)="dismissMatches()"><i class="fas fa-times"></i></button>
+    </div>
+    <p class="ai-panel-sub">These found items closely match what you reported. Contact the finder to confirm!</p>
+    <div class="ai-cards-row">
+      <div class="ai-match-card" *ngFor="let m of aiMatches" (click)="goToMatch(m.id)">
+        <div class="ai-card-img">
+          <img *ngIf="m.imageUrl" [src]="resolveImg(m.imageUrl)" alt="" (error)="$event.target.style.display='none'">
+          <i *ngIf="!m.imageUrl" class="fas fa-image"></i>
+        </div>
+        <div class="ai-card-body">
+          <h4>{{ m.itemName || 'Found Item' }}</h4>
+          <p class="ai-card-meta"><i class="fas fa-map-marker-alt"></i> {{ m.location }}</p>
+          <p class="ai-card-meta" *ngIf="m.category"><i class="fas fa-tag"></i> {{ m.category }}</p>
+          <div class="ai-card-footer">
+            <span class="match-pct"
+              [style.background]="(m.matchPercent||0) >= 60 ? 'rgba(22,160,133,.12)' : (m.matchPercent||0) >= 35 ? 'rgba(243,156,18,.12)' : 'rgba(108,117,125,.1)'"
+              [style.color]="(m.matchPercent||0) >= 60 ? 'var(--found)' : (m.matchPercent||0) >= 35 ? 'var(--gold)' : 'var(--muted)'">
+              {{ m.matchPercent }}% match
+            </span>
+            <span class="view-link">View <i class="fas fa-arrow-right"></i></span>
+          </div>
+          <div class="ai-card-contact" *ngIf="m.phoneNumber">
+            <i class="fas fa-phone"></i> {{ m.phoneNumber }}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ai-panel-actions">
+      <button class="btn-view-all" (click)="router.navigate(['/reports'])">
+        <i class="fas fa-list"></i> Browse All Found Items
+      </button>
+      <button class="btn-dismiss" (click)="dismissMatches()">Dismiss</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ FORM ═════════════════════════════════════════════════════════════════ -->
+<div class="form-container">
+  <form [formGroup]="lostForm">
+
+    <div class="form-card">
+      <div class="section-title"><i class="fas fa-info-circle"></i> Item Information</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Item Name *</label>
+          <input type="text" formControlName="itemName" placeholder="e.g. Black Leather Wallet, iPhone 14 Pro">
+        </div>
+        <div class="form-group">
+          <label>Category *</label>
+          <select formControlName="category">
+            <option value="">Select category</option>
+            <option value="wallet">Wallet / Purse</option>
+            <option value="phone">Mobile Phone</option>
+            <option value="laptop">Laptop / Tablet</option>
+            <option value="keys">Keys</option>
+            <option value="bag">Bag / Backpack</option>
+            <option value="documents">Documents / ID / Passport</option>
+            <option value="jewelry">Jewelry / Watch</option>
+            <option value="electronics">Other Electronics</option>
+            <option value="clothing">Clothing / Shoes</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Brand / Model</label>
+          <input type="text" formControlName="brand" placeholder="e.g. Apple, Samsung, Nike">
+        </div>
+        <div class="form-group">
+          <label>Primary Color *</label>
+          <input type="text" formControlName="color" placeholder="e.g. Black, Navy Blue">
+        </div>
+        <div class="form-group full-width">
+          <label>Detailed Description *</label>
+          <textarea formControlName="description" rows="3"
+            placeholder="Describe your item — unique marks, serial numbers, scratches, stickers, etc."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div class="section-title"><i class="fas fa-map-marker-alt"></i> Location &amp; Time</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Last Seen Location *</label>
+          <input type="text" formControlName="location" placeholder="e.g. BUBT Cafeteria, Library, Room 301">
+        </div>
+        <div class="form-group">
+          <label>Date Lost *</label>
+          <input type="date" formControlName="dateLost">
+        </div>
+        <div class="form-group">
+          <label>Approximate Time</label>
+          <input type="time" formControlName="timeLost">
+        </div>
+        <div class="form-group">
+          <label>Reward Offered 🏆</label>
+          <input type="text" formControlName="Reward" placeholder="e.g. 500 BDT or None">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div class="section-title"><i class="fas fa-camera"></i> Item Photo</div>
+      <div class="upload-zone"
+           (click)="onUploadClick()"
+           (dragover)="onDragOver($event)"
+           (dragleave)="onDragLeave($event)"
+           (drop)="onDrop($event)">
+        <i class="fas fa-cloud-upload-alt"></i>
+        <p>Click to upload or drag &amp; drop</p>
+        <small>JPG, PNG up to 10 MB</small>
+        <input #fileInput type="file" accept="image/*" multiple hidden (change)="onFilesSelected($event)">
+      </div>
+      <div class="preview-grid" #preview></div>
+    </div>
+
+    <div class="form-card">
+      <div class="section-title"><i class="fas fa-address-card"></i> Contact Information</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Your Name *</label>
+          <input type="text" formControlName="userName" placeholder="Full name">
+        </div>
+        <div class="form-group">
+          <label>Email *</label>
+          <input type="email" formControlName="email" placeholder="your@email.com">
+        </div>
+        <div class="form-group">
+          <label>Phone Number *</label>
+          <input type="tel" formControlName="phoneNumber" placeholder="+880...">
+        </div>
+        <div class="form-group">
+          <label>Alternative Contact</label>
+          <input type="text" formControlName="altContact" placeholder="Secondary number or contact">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="button" class="btn-submit" [disabled]="isSubmitting" (click)="lostSubmit()">
+        <i class="fas" [class.fa-paper-plane]="!isSubmitting" [class.fa-spinner]="isSubmitting"
+           [class.fa-spin]="isSubmitting"></i>
+        {{ isSubmitting ? 'Submitting…' : 'Submit Lost Report' }}
+      </button>
+    </div>
+
+  </form>
+</div>
