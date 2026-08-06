@@ -6,8 +6,7 @@ import { CommonModule } from '@angular/common';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { MatchService } from '../match.service';
-
-const API = 'https://localhost:7124/api/LostAndFound';
+import { API_BASE as API, resolveImageUrl } from '../api';
 
 @Component({
   selector: 'app-lost',
@@ -124,9 +123,7 @@ export class Lost implements OnInit {
   goToMatch(id: number) { this.router.navigate(['/productDetails', 'found', id]); }
 
   resolveImg(raw: string | null): string {
-    if (!raw) return '';
-    if (raw.startsWith('http') || raw.startsWith('data:')) return raw;
-    return `https://localhost:7124${raw}`;
+    return resolveImageUrl(raw);
   }
 
   // ── file upload helpers ────────────────────────────────────────────────────

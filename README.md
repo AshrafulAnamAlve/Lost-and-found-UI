@@ -1,59 +1,52 @@
-# LostandFoundUI
+# Lost & Found — Web UI
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.0.3.
+Angular 21 front end for the Lost & Found recovery platform: report lost/found
+items, get explainable AI match suggestions, and chat with the other party in
+real time.
 
-## Development server
+- **Live app:** https://ashrafulanamalve.github.io/Lost-and-found-UI/
+- **API:** https://lostandfoundd.runasp.net (source: [Lost-FoundAPI](https://github.com/AshrafulAnamAlve/Lost-FoundAPI))
+- **API health:** https://lostandfoundd.runasp.net/api/health
 
-To start a local development server, run:
+## Configuration
 
-```bash
-ng serve
-```
+The backend origin lives in one place — `src/environments/` — and is consumed
+through `src/app/api.ts`. Nothing else in the app hardcodes a URL.
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+| Build | File | Backend it talks to |
+| --- | --- | --- |
+| `development` (`ng serve`) | `environment.ts` | `https://<page hostname>:7124` — the API running on your machine |
+| `production` (`ng build`) | `environment.prod.ts` | `https://lostandfoundd.runasp.net` |
 
-## Code scaffolding
+The development origin is derived from `location.hostname` rather than
+hardcoded, so opening the dev server from another device on the same network
+(`https://192.168.0.103:4200`) still reaches that machine's API.
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
+## Development
 
 ```bash
-ng build
+npm install
+npm start          # http://localhost:4200
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+Run the API (`dotnet run --launch-profile https`) first, and start
+`ml_service/start.ps1` alongside it if you want the semantic matching layer
+active — without it the API falls back to rule-based matching only. `/api/health`
+reports which mode is live.
 
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+## Build
 
 ```bash
-ng test
+npm run build      # production build -> dist/LostandFoundUI/browser
 ```
 
-## Running end-to-end tests
+## Deployment
 
-For end-to-end (e2e) testing, run:
+Pushing to `main` triggers `.github/workflows/deploy.yml`, which builds the app
+and publishes it to GitHub Pages. Two details are specific to Pages:
 
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- The site is served from a sub-path, so the build passes
+  `--base-href /Lost-and-found-UI/`.
+- Pages has no SPA rewrite rule, so `index.html` is also published as
+  `404.html`. A hard refresh on `/dashbord` then still boots the app and the
+  Angular router resolves the URL.

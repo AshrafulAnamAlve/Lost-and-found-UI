@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { MatchService, MatchGroup, MatchItem, MatchReason } from '../match.service';
 import { Navbar } from '../navbar/navbar';
+import { resolveImageUrl } from '../api';
 
 @Component({
   selector: 'app-matches',
@@ -45,9 +46,7 @@ export class Matches implements OnInit {
   }
 
   resolveImg(url: string | undefined): string {
-    if (!url) return '';
-    if (url.startsWith('http') || url.startsWith('data:')) return url;
-    return `https://localhost:7124${url}`;
+    return resolveImageUrl(url);
   }
 
   pctClass(pct: number): string {

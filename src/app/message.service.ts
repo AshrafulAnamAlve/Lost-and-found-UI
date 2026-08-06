@@ -2,8 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { HubConnection, HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr';
 
-const API = 'https://localhost:7124/api/Messages';
-const HUB = 'https://localhost:7124/chatHub';
+import { MESSAGES_API as API, CHAT_HUB as HUB } from './api';
 
 export interface ChatMessage {
   id: number;

@@ -6,6 +6,7 @@ import { forkJoin, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { Navbar } from '../navbar/navbar';
 import { MatchService } from '../match.service';
+import { API_BASE, resolveImageUrl } from '../api';
 
 @Component({
   selector: 'app-dashbord',
@@ -26,7 +27,7 @@ export class Dashbord implements OnInit {
   ngOnInit() {
     const uid = localStorage.getItem('userid');
     if (uid) {
-      this.http.get<any>(`https://localhost:7124/api/LostAndFound/getUser/${uid}`).subscribe({
+      this.http.get<any>(`${API_BASE}/getUser/${uid}`).subscribe({
         next: u => { this.username = `${u.firstName || ''} ${u.lastName || ''}`.trim(); }
       });
     }
@@ -34,7 +35,7 @@ export class Dashbord implements OnInit {
   }
 
   loadStats(uid: string | null) {
-    this.http.get<any>('https://localhost:7124/api/LostAndFound/GetAllItem').subscribe({
+    this.http.get<any>(`${API_BASE}/GetAllItem`).subscribe({
       next: data => {
         const lost  = data?.lost  || data?.Lost  || [];
         const found = data?.found || data?.Found || [];
@@ -66,13 +67,11 @@ export class Dashbord implements OnInit {
   }
 
   resolveImg(raw: string | undefined): string {
-    if (!raw) return '';
-    if (raw.startsWith('http') || raw.startsWith('data:')) return raw;
-    return `https://localhost:7124${raw}`;
+    return resolveImageUrl(raw);
   }
 
   private loadAllMatches(myLost: any[], myFound: any[]) {
-    const base = 'https://localhost:7124/api/LostAndFound';
+    const base = API_BASE;
     const calls = [
       ...myLost.map(it => this.http.get<any>(`${base}/GetMatchesForLost/${it.id}`).pipe(
         map(r => ({ it, type: 'lost' as const, matches: r?.suggestedMatches ?? [] })),

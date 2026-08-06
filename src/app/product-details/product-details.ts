@@ -3,8 +3,7 @@ import { ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-
-const API = 'https://localhost:7124/api/LostAndFound';
+import { API_BASE as API, resolveImageUrl } from '../api';
 
 @Component({
   selector: 'app-product-details',
@@ -109,9 +108,7 @@ export class ProductDetails implements OnInit {
   pctClass(p: number) { return p >= 65 ? 'high' : p >= 35 ? 'med' : 'low'; }
 
   resolveImg(raw: string | null | undefined, type?: string): string {
-    if (!raw) return '';
-    if (raw.startsWith('http') || raw.startsWith('data:')) return raw;
-    return `https://localhost:7124${raw}`;
+    return resolveImageUrl(raw);
   }
 
   imgError(e: any) { e.target.style.display = 'none'; }

@@ -4,6 +4,7 @@ import { AfterViewInit, Component, inject } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
+import { API_BASE } from '../api';
 
 @Component({
   selector: 'app-login',
@@ -56,7 +57,7 @@ export class Login implements AfterViewInit {
       this.snackBar.open('Please fill all required fields', 'Ok', { duration: 3000, verticalPosition: 'top' });
       return;
     }
-    this.http.post('https://localhost:7124/api/LostAndFound/Register', this.RegisterForm.value, { responseType: 'text' }).subscribe({
+    this.http.post(`${API_BASE}/Register`, this.RegisterForm.value, { responseType: 'text' }).subscribe({
       next: (res: string) => {
         if (res === 'Registration successful') {
           this.snackBar.open('Account created! Please sign in.', 'Ok', { duration: 4000, verticalPosition: 'top' });
@@ -75,7 +76,7 @@ export class Login implements AfterViewInit {
       this.snackBar.open('Please enter valid credentials', 'Ok', { duration: 3000, verticalPosition: 'top' });
       return;
     }
-    this.http.post('https://localhost:7124/api/LostAndFound/login', this.loginForm.value).subscribe({
+    this.http.post(`${API_BASE}/login`, this.loginForm.value).subscribe({
       next: (res: any) => {
         if (res.message === 'Login Successfull') {
           localStorage.setItem('isLoggedin', 'token');
