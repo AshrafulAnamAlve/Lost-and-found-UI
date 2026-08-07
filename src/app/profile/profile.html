@@ -12,9 +12,10 @@
           <input #avatarInput type="file" accept="image/*" hidden (change)="onAvatarSelected($event)">
         </div>
         <div class="profile-info">
-          <h2 class="profile-name">{{user.firstName+ ' '+user.lastName}}</h2>
-          <p class="profile-detail"><i class="fas fa-envelope"></i> {{user.email}}</p>
-          <p class="profile-detail"><i class="fas fa-map-marker-alt"></i> {{user.city}}, Bangladesh</p>
+          <!-- user arrives from an HTTP call, so it is undefined on first render -->
+          <h2 class="profile-name">{{ user?.firstName }} {{ user?.lastName }}</h2>
+          <p class="profile-detail"><i class="fas fa-envelope"></i> {{user?.email}}</p>
+          <p class="profile-detail"><i class="fas fa-map-marker-alt"></i> {{user?.city}}, Bangladesh</p>
           <p class="profile-detail"><i class="fas fa-calendar-alt"></i> Member since Jan 2026</p>
         </div>
       </div>
