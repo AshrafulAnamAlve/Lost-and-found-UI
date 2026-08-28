@@ -68,10 +68,12 @@
             <option value="wallet">Wallet / Purse</option>
             <option value="phone">Mobile Phone</option>
             <option value="laptop">Laptop / Tablet</option>
+            <option value="calculator">Calculator</option>
             <option value="keys">Keys</option>
             <option value="bag">Bag / Backpack</option>
             <option value="documents">Documents / ID / Passport</option>
-            <option value="jewelry">Jewelry / Watch</option>
+            <option value="watch">Watch</option>
+            <option value="jewelry">Jewelry</option>
             <option value="electronics">Other Electronics</option>
             <option value="clothing">Clothing / Shoes</option>
             <option value="other">Other</option>
@@ -128,6 +130,39 @@
         <input #fileInput type="file" accept="image/*" multiple hidden (change)="onFilesSelected($event)">
       </div>
       <div class="preview-grid" #preview></div>
+
+      <!-- Image classifier result. Hidden entirely when the classifier is off or
+           unreachable, so the form looks exactly as it did before when it is. -->
+      <div class="detect-box detect-busy" *ngIf="isClassifying">
+        <i class="fas fa-spinner fa-spin"></i>
+        <span>Checking the photo…</span>
+      </div>
+
+      <ng-container *ngIf="!isClassifying && detection">
+        <!-- Confident: state what it saw, and whether we filled the dropdown. -->
+        <div class="detect-box detect-known" *ngIf="detection.known">
+          <i class="fas fa-check-circle"></i>
+          <span>
+            <span class="ai-tag">AI</span>
+            Looks like a <strong>{{ detection.label }}</strong>
+            <span class="detect-conf">{{ (detection.confidence * 100) | number:'1.0-0' }}% sure</span>
+            <em *ngIf="categoryAutoFilled">
+              — category set to “{{ categoryLabel(detection.category) }}”. Change it above if that is wrong.
+            </em>
+          </span>
+        </div>
+
+        <!-- Unsure: never guess on the user's behalf, just ask. -->
+        <div class="detect-box detect-unsure" *ngIf="!detection.known">
+          <i class="fas fa-question-circle"></i>
+          <span>
+            <span class="ai-tag">AI</span>
+            Not sure what this is<span *ngIf="detection.label"> (closest guess {{ detection.label }})</span><span
+              *ngIf="detection.confidence">, only {{ (detection.confidence * 100) | number:'1.0-0' }}% confident</span>.
+            Please pick the <strong>Category</strong> yourself above.
+          </span>
+        </div>
+      </ng-container>
     </div>
 
     <div class="form-card">

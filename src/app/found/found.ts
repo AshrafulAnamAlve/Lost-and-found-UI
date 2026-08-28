@@ -32,6 +32,21 @@ export class Found {
   aiMatches:   any[] = [];
   showMatches       = false;
 
+  // Image classifier state for the photo section. `available: false` means the
+  // classifier is off or unreachable, in which case nothing is shown at all.
+  isClassifying = false;
+  detection: {
+    label: string | null;
+    confidence: number;
+    known: boolean;
+    category: string | null;
+    available: boolean;
+  } | null = null;
+
+  // Set when the category dropdown was filled from the detection, so the banner
+  // can say so instead of silently changing a field the user is looking at.
+  categoryAutoFilled = false;
+
   foundforum: FormGroup = new FormGroup({
     itemName:    new FormControl('', Validators.required),
     type:        new FormControl('found'),
@@ -47,6 +62,12 @@ export class Found {
     phoneNumber: new FormControl('', Validators.required),
     altContact:  new FormControl(''),
     userid:      new FormControl(parseInt(localStorage.getItem('userid') || '0')),
+
+    // What the image classifier saw, sent with the item so the first match pass
+    // can use it — the photo itself only uploads after this post. Kept separate
+    // from `category` above: that is the user's answer, this is the model's.
+    detectedCategory:   new FormControl<string | null>(null),
+    detectedConfidence: new FormControl<number | null>(null),
   });
 
   foundSubmit() {
@@ -111,6 +132,8 @@ export class Found {
       userid:   parseInt(localStorage.getItem('userid') || '0'),
     });
     this.previews = []; this.selectedFiles = [];
+    this.isClassifying = false;
+    this.clearDetection();
   }
 
   dismissMatches() { this.showMatches = false; }
@@ -138,7 +161,92 @@ export class Found {
       r.onload = () => this.previews.push(r.result as string);
       r.readAsDataURL(f);
     });
+
+    // The first photo is the one uploaded with the item, so it is the one we ask
+    // the model about.
+    if (this.selectedFiles.length > 0) this.classifyImage(this.selectedFiles[0]);
+    else this.clearDetection();
   }
 
-  removeImage(i: number) { this.previews.splice(i, 1); this.selectedFiles.splice(i, 1); }
+  removeImage(i: number) {
+    this.previews.splice(i, 1);
+    this.selectedFiles.splice(i, 1);
+
+    // Removing the first photo changes which one gets uploaded, so the previous
+    // detection no longer describes it.
+    if (i === 0) {
+      if (this.selectedFiles.length > 0) this.classifyImage(this.selectedFiles[0]);
+      else this.clearDetection();
+    }
+  }
+
+  // ── image classification ───────────────────────────────────────────────────
+
+  // Human wording for the category values the <select> uses.
+  private static readonly CATEGORY_LABELS: Record<string, string> = {
+    laptop:     'Laptop / Tablet',
+    phone:      'Mobile Phone',
+    watch:      'Watch',
+    calculator: 'Calculator',
+  };
+
+  categoryLabel(value: string | null): string {
+    return (value && Found.CATEGORY_LABELS[value]) || value || '';
+  }
+
+  clearDetection() {
+    this.detection = null;
+    this.categoryAutoFilled = false;
+    this.foundforum.patchValue({ detectedCategory: null, detectedConfidence: null });
+  }
+
+  // Asks the API what the photo shows, then records it on the form.
+  //
+  // Best-effort throughout: any failure clears the detection and leaves the form
+  // untouched, because a classifier being down must never stop someone reporting
+  // an item they found.
+  classifyImage(file: File) {
+    this.isClassifying = true;
+    this.clearDetection();
+
+    const fd = new FormData();
+    fd.append('image', file, file.name);
+
+    this.http.post<any>(`${API}/ClassifyImage`, fd).subscribe({
+      next: (res) => {
+        this.isClassifying = false;
+
+        if (!res?.available) return;   // classifier off or unreachable — stay silent
+
+        this.detection = {
+          label:      res.label ?? null,
+          confidence: res.confidence ?? 0,
+          known:      !!res.known,
+          category:   res.category ?? null,
+          available:  true,
+        };
+
+        // Only a confident answer is worth recording. Below the threshold the
+        // model is guessing, and the banner asks the user to pick instead.
+        if (res.known && res.category) {
+          this.foundforum.patchValue({
+            detectedCategory:   res.category,
+            detectedConfidence: res.confidence,
+          });
+
+          // Suggest, never override: fill the dropdown only while it is still
+          // empty, and say so in the banner so the user can correct it.
+          if (!this.foundforum.value.category) {
+            this.foundforum.patchValue({ category: res.category });
+            this.categoryAutoFilled = true;
+          }
+        }
+      },
+      error: () => {
+        // Same as unavailable — the photo still uploads, just without a category.
+        this.isClassifying = false;
+        this.clearDetection();
+      },
+    });
+  }
 }

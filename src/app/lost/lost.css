@@ -70,6 +70,27 @@
 }
 .remove-img:hover { background: var(--accent); }
 
+/* Image classifier result under the upload zone */
+.detect-box {
+  display: flex; align-items: flex-start; gap: 10px;
+  margin-top: 1rem; padding: .8rem 1rem;
+  border-radius: 10px; border: 1px solid var(--border);
+  background: var(--bg); font-size: .85rem; line-height: 1.5;
+  color: var(--text);
+}
+.detect-box i { font-size: 1rem; margin-top: 2px; }
+.detect-box .ai-tag { margin-right: 4px; vertical-align: middle; }
+.detect-box em { color: var(--muted); font-style: normal; }
+.detect-busy    { color: var(--muted); }
+.detect-busy i  { color: var(--muted); }
+.detect-known   { border-color: rgba(22,160,133,.35); background: rgba(22,160,133,.06); }
+.detect-known i { color: var(--found); }
+.detect-unsure  { border-color: rgba(233,69,96,.3);  background: rgba(233,69,96,.05); }
+.detect-unsure i{ color: var(--accent); }
+.detect-conf {
+  color: var(--muted); font-size: .78rem; margin-left: 6px;
+}
+
 /* Submit */
 .form-actions { display: flex; justify-content: flex-end; padding: .5rem 0; }
 .btn-submit {

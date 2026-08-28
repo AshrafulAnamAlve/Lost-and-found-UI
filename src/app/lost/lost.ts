@@ -30,6 +30,23 @@ export class Lost implements OnInit {
   aiMatches:   any[] = [];
   showMatches       = false;
 
+  // Image classifier state for the photo section.
+  // `detection` is null until a photo has been classified; `available: false`
+  // means the classifier is switched off or unreachable, in which case the UI
+  // shows nothing at all and the form behaves exactly as it did before.
+  isClassifying = false;
+  detection: {
+    label: string | null;
+    confidence: number;
+    known: boolean;
+    category: string | null;
+    available: boolean;
+  } | null = null;
+
+  // Set when we filled the category dropdown from the detection, so the banner
+  // can say so rather than silently changing a field the user is looking at.
+  categoryAutoFilled = false;
+
   lostForm: FormGroup = new FormGroup({
     itemName:    new FormControl('', Validators.required),
     type:        new FormControl('lost'),
@@ -46,6 +63,14 @@ export class Lost implements OnInit {
     phoneNumber: new FormControl('', Validators.required),
     altContact:  new FormControl(''),
     userid:      new FormControl(parseInt(localStorage.getItem('userid') || '0')),
+
+    // What the image classifier saw, sent with the item so the very first match
+    // pass can use it. The photo itself is uploaded after this post, so waiting
+    // for UploadImage to classify would be too late for these matches.
+    // Separate from `category` above: that is the user's answer, this is the
+    // model's, and the matching engine weighs them very differently.
+    detectedCategory:   new FormControl<string | null>(null),
+    detectedConfidence: new FormControl<number | null>(null),
   });
 
   ngOnInit(): void {}
@@ -115,6 +140,8 @@ export class Lost implements OnInit {
       userid:   parseInt(localStorage.getItem('userid') || '0'),
     });
     this.selectedFiles = [];
+    this.isClassifying = false;
+    this.clearDetection();
     if (this.previewEl) this.previewEl.nativeElement.innerHTML = '';
   }
 
@@ -135,6 +162,12 @@ export class Lost implements OnInit {
 
   handleFiles(files: FileList) {
     this.selectedFiles = Array.from(files).filter(f => f.type.startsWith('image')).slice(0, 6);
+
+    // The first photo is the one uploaded with the item, so it is the one we ask
+    // the model about.
+    if (this.selectedFiles.length > 0) this.classifyImage(this.selectedFiles[0]);
+    else this.clearDetection();
+
     const container    = this.previewEl?.nativeElement;
     if (!container) return;
     container.innerHTML = '';
@@ -148,6 +181,76 @@ export class Lost implements OnInit {
         wrap.appendChild(img); wrap.appendChild(rm); container.appendChild(wrap);
       };
       reader.readAsDataURL(file);
+    });
+  }
+
+  // ── image classification ───────────────────────────────────────────────────
+
+  // Human wording for the category values the <select> above uses.
+  private static readonly CATEGORY_LABELS: Record<string, string> = {
+    laptop:     'Laptop / Tablet',
+    phone:      'Mobile Phone',
+    watch:      'Watch',
+    calculator: 'Calculator',
+  };
+
+  categoryLabel(value: string | null): string {
+    return (value && Lost.CATEGORY_LABELS[value]) || value || '';
+  }
+
+  clearDetection() {
+    this.detection = null;
+    this.categoryAutoFilled = false;
+    this.lostForm.patchValue({ detectedCategory: null, detectedConfidence: null });
+  }
+
+  // Asks the API what the photo shows, then records it on the form.
+  //
+  // Best-effort throughout: any failure clears the detection and leaves the form
+  // untouched, because a classifier being down must never stop someone reporting
+  // a lost item.
+  classifyImage(file: File) {
+    this.isClassifying = true;
+    this.clearDetection();
+
+    const fd = new FormData();
+    fd.append('image', file, file.name);
+
+    this.http.post<any>(`${API}/ClassifyImage`, fd).subscribe({
+      next: (res) => {
+        this.isClassifying = false;
+
+        if (!res?.available) return;   // classifier off or unreachable — stay silent
+
+        this.detection = {
+          label:      res.label ?? null,
+          confidence: res.confidence ?? 0,
+          known:      !!res.known,
+          category:   res.category ?? null,
+          available:  true,
+        };
+
+        // Only a confident answer is worth recording. Below the threshold the
+        // model is guessing, and the banner asks the user to pick instead.
+        if (res.known && res.category) {
+          this.lostForm.patchValue({
+            detectedCategory:   res.category,
+            detectedConfidence: res.confidence,
+          });
+
+          // Suggest, never override: fill the dropdown only while it is still
+          // empty, and say so in the banner so the user can correct it.
+          if (!this.lostForm.value.category) {
+            this.lostForm.patchValue({ category: res.category });
+            this.categoryAutoFilled = true;
+          }
+        }
+      },
+      error: () => {
+        // Same as unavailable — the photo still uploads, just without a category.
+        this.isClassifying = false;
+        this.clearDetection();
+      },
     });
   }
 }
