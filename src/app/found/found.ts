@@ -40,6 +40,9 @@ export class Found {
     confidence: number;
     known: boolean;
     category: string | null;
+    // Categories the photo does not contradict, straight from the API - the
+    // rule lives in ItemClassificationService so there is only one copy of it.
+    acceptable: string[];
     available: boolean;
   } | null = null;
 
@@ -184,14 +187,55 @@ export class Found {
 
   // Human wording for the category values the <select> uses.
   private static readonly CATEGORY_LABELS: Record<string, string> = {
-    laptop:     'Laptop / Tablet',
-    phone:      'Mobile Phone',
-    watch:      'Watch',
-    calculator: 'Calculator',
+    wallet:      'Wallet / Purse',
+    phone:       'Mobile Phone',
+    laptop:      'Laptop / Tablet',
+    calculator:  'Calculator',
+    keys:        'Keys',
+    bag:         'Bag / Backpack',
+    documents:   'Documents / ID / Passport',
+    watch:       'Watch',
+    jewelry:     'Jewelry',
+    electronics: 'Other Electronics',
+    clothing:    'Clothing / Shoes',
+    other:       'Other',
   };
 
   categoryLabel(value: string | null): string {
     return (value && Found.CATEGORY_LABELS[value]) || value || '';
+  }
+
+  // True when the model is confident, the user has chosen a category, and the photo
+  // does not support that choice.
+  //
+  // This is the one thing here the user cannot do for themselves. Filling an empty
+  // dropdown only saves a tap they were about to make anyway; catching a photo filed
+  // under the wrong category is a mistake they cannot see, and a mis-filed item is
+  // one the matching engine will struggle to find later.
+  //
+  // Always a warning, never a correction: the user is holding the object and the
+  // model is not, so they are allowed to be right and it is allowed to be wrong.
+  get categoryMismatch(): boolean {
+    const chosen = this.foundforum.value.category;
+    const d = this.detection;
+
+    return !!d && d.known && !!d.category && !!chosen
+        && d.acceptable.length > 0
+        && !d.acceptable.includes(chosen);
+  }
+
+  // Accepts the model's reading. Patching the control does not raise the DOM change
+  // event, so this does not look like the user picking a category by hand.
+  useDetectedCategory() {
+    if (!this.detection?.category) return;
+    this.foundforum.patchValue({ category: this.detection.category });
+    this.categoryAutoFilled = false;
+  }
+
+  // Once the user has picked a category themselves, the banner must stop saying the
+  // form filled it in for them.
+  onCategoryChosen() {
+    this.categoryAutoFilled = false;
   }
 
   clearDetection() {
@@ -223,6 +267,7 @@ export class Found {
           confidence: res.confidence ?? 0,
           known:      !!res.known,
           category:   res.category ?? null,
+          acceptable: res.acceptableCategories ?? [],
           available:  true,
         };
 

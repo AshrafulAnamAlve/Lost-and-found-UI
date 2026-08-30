@@ -98,6 +98,17 @@
 .detect-known i { color: var(--found); }
 .detect-unsure  { border-color: rgba(233,69,96,.3);  background: rgba(233,69,96,.05); }
 .detect-unsure i{ color: var(--accent); }
+.detect-mismatch   { border-color: rgba(230,145,20,.45); background: rgba(230,145,20,.08); }
+.detect-mismatch i { color: #d98613; }
+.detect-fix {
+  display: inline-block; margin: 0 6px; padding: 3px 12px;
+  border: 1px solid var(--accent); border-radius: 20px;
+  background: transparent; color: var(--accent);
+  font-size: .78rem; font-weight: 700; cursor: pointer;
+  transition: background .2s, color .2s;
+}
+.detect-fix:hover { background: var(--accent); color: #fff; }
+.detect-fix:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .detect-conf {
   color: var(--muted); font-size: .78rem; margin-left: 6px;
 }

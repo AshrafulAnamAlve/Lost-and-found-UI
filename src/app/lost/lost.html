@@ -63,7 +63,7 @@
         </div>
         <div class="form-group">
           <label>Category *</label>
-          <select formControlName="category">
+          <select formControlName="category" (change)="onCategoryChosen()">
             <option value="">Select category</option>
             <option value="wallet">Wallet / Purse</option>
             <option value="phone">Mobile Phone</option>
@@ -140,7 +140,7 @@
 
       <ng-container *ngIf="!isClassifying && detection">
         <!-- Confident: state what it saw, and whether we filled the dropdown. -->
-        <div class="detect-box detect-known" *ngIf="detection.known">
+        <div class="detect-box detect-known" *ngIf="detection.known && !categoryMismatch">
           <i class="fas fa-check-circle"></i>
           <span>
             <span class="ai-tag">AI</span>
@@ -149,6 +149,23 @@
             <em *ngIf="categoryAutoFilled">
               — category set to “{{ categoryLabel(detection.category) }}”. Change it above if that is wrong.
             </em>
+          </span>
+        </div>
+
+        <!-- Confident, but it disagrees with the category on the form. Says what it
+             saw, what is selected, and offers the fix in one click - while making clear
+             the user may keep their own answer. -->
+        <div class="detect-box detect-mismatch" *ngIf="detection.known && categoryMismatch">
+          <i class="fas fa-exclamation-triangle"></i>
+          <span>
+            <span class="ai-tag">AI</span>
+            This photo looks like a <strong>{{ detection.label }}</strong>
+            <span class="detect-conf">{{ (detection.confidence * 100) | number:'1.0-0' }}% sure</span>,
+            but the category says <strong>{{ categoryLabel(lostForm.value.category) }}</strong>.
+            <button type="button" class="detect-fix" (click)="useDetectedCategory()">
+              Change to {{ categoryLabel(detection.category) }}
+            </button>
+            <em>Keep yours if the photo shows something else.</em>
           </span>
         </div>
 
