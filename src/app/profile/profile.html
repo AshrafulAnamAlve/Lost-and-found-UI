@@ -68,7 +68,7 @@
 
         <div class="ai-match-row" *ngFor="let m of g.matches" (click)="viewMatch(g.type, m.id)">
           <div class="ai-thumb">
-            <img *ngIf="m.imageUrl" [src]="resolveImg(m.imageUrl)" alt="" (error)="$event.target.style.display='none'">
+            <img *ngIf="m.imageUrl" [src]="resolveImg(m.imageUrl)" alt="" loading="lazy" decoding="async" (error)="$event.target.style.display='none'">
             <i *ngIf="!m.imageUrl" class="fas fa-image"></i>
           </div>
 
@@ -102,7 +102,7 @@
       <div class="report-cards">
         <article class="report-card" *ngFor="let item of userItems" [class.is-resolved]="isResolved(item)">
           <div class="card-image">
-            <img [src]="item.image" (error)="imgError($event)" alt="{{item.title}}">
+            <img [src]="item.image" (error)="imgError($event)" alt="{{item.title}}" loading="lazy" decoding="async">
             <span class="badge" [ngClass]="item.type === 'lost' ? 'item-lost' : 'item-found'">
               {{ item.type | uppercase }}
             </span>

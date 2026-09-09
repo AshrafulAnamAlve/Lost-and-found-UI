@@ -65,7 +65,7 @@
          [class.is-resolved]="item.status === 'resolved'"
          [routerLink]="['/productDetails', item.type, item.id]" [queryParams]="{ref:'reports'}">
       <div class="item-img-wrap">
-        <img *ngIf="item.image" [src]="item.image" [alt]="item.title" (error)="imgError($event)">
+        <img *ngIf="item.image" [src]="item.image" [alt]="item.title" loading="lazy" decoding="async" (error)="imgError($event)">
         <div *ngIf="!item.image" class="item-img-placeholder">
           <i [class]="'fas fa-' + (item.type === 'lost' ? 'search-minus' : 'search-plus')"></i>
         </div>

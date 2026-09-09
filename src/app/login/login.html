@@ -53,7 +53,7 @@
     <div class="preview-grid">
       <button type="button" class="preview-card" *ngFor="let item of previewShown" (click)="openItem(item)">
         <div class="preview-img">
-          <img *ngIf="itemImage(item)" [src]="itemImage(item)" alt="" (error)="$event.target.style.display='none'">
+          <img *ngIf="itemImage(item)" [src]="itemImage(item)" alt="" loading="lazy" decoding="async" (error)="$event.target.style.display='none'">
           <i class="fas fa-image" *ngIf="!itemImage(item)"></i>
           <span class="preview-badge" [class.is-found]="item.type === 'found'">{{ item.type | uppercase }}</span>
           <span class="preview-badge preview-badge-done" *ngIf="item.status === 'resolved'">
