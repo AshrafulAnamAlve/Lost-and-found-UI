@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { Navbar } from '../navbar/navbar';
 import { API_ORIGIN } from '../api';
+import { itemMatchesCategory } from '../categories';
 
 @Component({
   selector: 'app-reports',
@@ -23,7 +24,15 @@ export class Reports implements OnInit {
   filteredItems: any[] = [];
   uniqueLocations: string[] = [];
 
-  ngOnInit() { this.getAllItem(); }
+  private route = inject(ActivatedRoute);
+
+  ngOnInit() {
+    // Arriving from a category card on the landing page: open already filtered.
+    const category = this.route.snapshot.queryParamMap.get('category');
+    if (category) this.filters.category = category.toLowerCase();
+
+    this.getAllItem();
+  }
 
   private resolveImage(raw: string | undefined | null, type: string): string | null {
     if (!raw) return null;
@@ -60,7 +69,7 @@ export class Reports implements OnInit {
     this.filteredItems = this.items.filter(item => {
       if (this.activeTab !== 'all' && item.type !== this.activeTab) return false;
       if (kw  && !(item.title    || '').toLowerCase().includes(kw))  return false;
-      if (cat && !(item.category || '').toLowerCase().includes(cat)) return false;
+      if (cat && !itemMatchesCategory(item, cat)) return false;
       if (loc && !(item.location || '').toLowerCase().includes(loc)) return false;
       return true;
     });

@@ -1,16 +1,20 @@
 import { Component, ElementRef, inject, OnInit, ViewChild } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  bdPhone, brandName, colorName, describeError, looksContactable, meaningfulText,
+  optional, placeName, realisticDate, rewardValue, strictEmail,
+} from '../validators';
 import { Sidenav } from '../sidenav/sidenav';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { MatchService } from '../match.service';
 import { API_BASE as API, resolveImageUrl } from '../api';
 
 @Component({
   selector: 'app-lost',
-  imports: [Sidenav, ReactiveFormsModule, CommonModule],
+  imports: [Sidenav, ReactiveFormsModule, CommonModule, RouterModule],
   templateUrl: './lost.html',
   styleUrl: './lost.css',
 })
@@ -51,20 +55,24 @@ export class Lost implements OnInit {
   categoryAutoFilled = false;
 
   lostForm: FormGroup = new FormGroup({
-    itemName:    new FormControl('', Validators.required),
+    itemName:    new FormControl('', [Validators.required, meaningfulText(3, 60)]),
     type:        new FormControl('lost'),
     category:    new FormControl('', Validators.required),
-    location:    new FormControl('', Validators.required),
-    description: new FormControl('', Validators.required),
-    dateLost:    new FormControl(new Date().toISOString().split('T')[0], Validators.required),
+    location:    new FormControl('', [Validators.required, meaningfulText(3, 100)]),
+    description: new FormControl('', [Validators.required, meaningfulText(15, 500, 3)]),
+    dateLost:    new FormControl(new Date().toISOString().split('T')[0], [Validators.required, realisticDate()]),
     timeLost:    new FormControl(''),
-    brand:       new FormControl(''),
-    color:       new FormControl('', Validators.required),
-    Reward:      new FormControl(''),
-    userName:    new FormControl('', Validators.required),
-    email:       new FormControl('', [Validators.required, Validators.email]),
-    phoneNumber: new FormControl('', Validators.required),
-    altContact:  new FormControl(''),
+    brand:       new FormControl('', optional(brandName)),
+    color:       new FormControl('', [Validators.required, colorName]),
+    Reward:      new FormControl('', optional(rewardValue)),
+
+    // Contact details are never typed here — they are copied from the signed-in
+    // user's profile in loadProfile(). They stay on the form so the request body
+    // the API receives is exactly what it was before.
+    userName:    new FormControl('', [Validators.required, meaningfulText(2, 60)]),
+    email:       new FormControl('', [Validators.required, strictEmail]),
+    phoneNumber: new FormControl('', [Validators.required, bdPhone]),
+    altContact:  new FormControl('', optional(bdPhone)),
     userid:      new FormControl(parseInt(localStorage.getItem('userid') || '0')),
 
     // What the image classifier saw, sent with the item so the very first match
@@ -76,12 +84,81 @@ export class Lost implements OnInit {
     detectedConfidence: new FormControl<number | null>(null),
   });
 
-  ngOnInit(): void {}
+  // ── contact details, taken from the profile instead of retyped ─────────────
+  profileLoaded = false;
+  profileFailed = false;
+  contact = { userName: '', email: '', phoneNumber: '', altContact: '' };
+
+  /** True once we have enough from the profile to let a finder reach this person. */
+  get contactReady(): boolean {
+    return !!this.contact.userName && !!this.contact.email && looksContactable(this.contact.phoneNumber);
+  }
+
+  ngOnInit(): void {
+    this.loadProfile();
+  }
+
+  /**
+   * Copies name, email and phone from the signed-in user's profile onto the form.
+   * Asking for them again on every report is how the same person ends up in the
+   * database under three different phone numbers.
+   */
+  private loadProfile() {
+    const id = localStorage.getItem('userid');
+    if (!id) { this.profileLoaded = true; this.profileFailed = true; return; }
+
+    this.http.get<any>(`${API}/getUser/${id}`).subscribe({
+      next: (user) => {
+        this.contact = {
+          userName:    `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim(),
+          email:       user?.email ?? '',
+          phoneNumber: user?.phone ?? '',
+          altContact:  user?.secondaryPhone ?? '',
+        };
+        this.lostForm.patchValue(this.contact);
+        this.profileLoaded = true;
+      },
+      error: () => { this.profileLoaded = true; this.profileFailed = true; },
+    });
+  }
+
+  /** Distinguishes an unfinished form from a filled-in one that fails the rules. */
+  private invalidMessage(form: FormGroup): string {
+    const onlyMissing = Object.keys(form.controls).every((key) => {
+      const errors = form.get(key)?.errors;
+      return !errors || Object.keys(errors).every((e) => e === 'required');
+    });
+    return onlyMissing
+      ? 'Please fill all required fields'
+      : 'Some fields still have invalid data — check the messages in red';
+  }
+
+  /** The message for whatever rule a field is currently failing, or null. */
+  err(control: string): string | null {
+    return describeError(this.lostForm.get(control), Lost.LABELS[control] ?? control);
+  }
+
+  private static readonly LABELS: Record<string, string> = {
+    itemName:    'Item name',
+    category:    'Category',
+    location:    'Location',
+    description: 'Description',
+    dateLost:    'Date lost',
+    brand:       'Brand',
+    color:       'Colour',
+    Reward:      'Reward',
+  };
 
   lostSubmit() {
+    if (!this.contactReady) {
+      this.snackBar.open(
+        'Your profile has no contact details yet — add them on your profile first',
+        'Ok', { duration: 4000, verticalPosition: 'top' });
+      return;
+    }
     if (this.lostForm.invalid) {
       this.lostForm.markAllAsTouched();
-      this.snackBar.open('Please fill all required fields', 'Ok', { duration: 3000, verticalPosition: 'top' });
+      this.snackBar.open(this.invalidMessage(this.lostForm), 'Ok', { duration: 4000, verticalPosition: 'top' });
       return;
     }
 
@@ -141,6 +218,7 @@ export class Lost implements OnInit {
       type:     'lost',
       dateLost: new Date().toISOString().split('T')[0],
       userid:   parseInt(localStorage.getItem('userid') || '0'),
+      ...this.contact,   // reset must not wipe what the profile supplied
     });
     this.selectedFiles = [];
     this.isClassifying = false;

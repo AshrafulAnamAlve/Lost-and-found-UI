@@ -7,6 +7,9 @@ import { Navbar } from '../navbar/navbar';
 import { HttpClient } from '@angular/common/http';
 import { API_ORIGIN } from '../api';
 import { MatchItem, MatchReason } from '../match.service';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { UserService } from '../user.service';
+import { ResolveItem } from '../resolve-item/resolve-item';
 
 interface ProfileMatchGroup {
   itemId: number;
@@ -17,7 +20,7 @@ interface ProfileMatchGroup {
 
 @Component({
   selector: 'app-profile',
-  imports: [CommonModule, Navbar, RouterModule],
+  imports: [CommonModule, Navbar, RouterModule, ResolveItem],
   templateUrl: './profile.html',
   styleUrl: './profile.css',
 })
@@ -33,13 +36,22 @@ user: any;
   aiGroups: ProfileMatchGroup[] = [];
   loadingMatches = true;
 
-  // Profile picture upload
+  // ── Profile picture ────────────────────────────────────────────────────────
   @ViewChild('avatarInput') avatarInput!: ElementRef<HTMLInputElement>;
   uploadingAvatar = false;
+  avatarDragging = false;
+
+  /** Shown the instant a file is picked, so the circle never sits empty while uploading. */
+  avatarPreview: string | null = null;
+
+  private static readonly MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+  private static readonly ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
   http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);
   private router = inject(Router);
+  private snackBar = inject(MatSnackBar);
+  private userSvc = inject(UserService);
 
   ngOnInit(): void {
     const id = localStorage.getItem("userid");
@@ -187,17 +199,61 @@ user: any;
   }
 
   // ── profile picture ─────────────────────────────────────────────────────
-  /** Current avatar: the user's uploaded picture, or a friendly default. */
-  avatarUrl(): string {
-    const raw = this.user?.imageUrl;
-    return raw ? this.resolveImg(raw) : 'https://i.pravatar.cc/300';
+
+  /**
+   * The picture to draw: the local preview while an upload is in flight, then the
+   * stored one. Empty means the user has never uploaded a photo — the template
+   * draws their initials rather than a stock face, so "no photo yet" is obvious.
+   */
+  get avatarSrc(): string {
+    if (this.avatarPreview) return this.avatarPreview;
+    return this.user?.imageUrl ? this.resolveImg(this.user.imageUrl) : '';
   }
 
-  triggerAvatarUpload() { this.avatarInput?.nativeElement.click(); }
+  /** Initials for the placeholder circle. */
+  get initials(): string {
+    const first = (this.user?.firstName || '').trim();
+    const last  = (this.user?.lastName  || '').trim();
+    return ((first[0] || '') + (last[0] || '')).toUpperCase() || '?';
+  }
+
+  triggerAvatarUpload() {
+    if (!this.uploadingAvatar) this.avatarInput?.nativeElement.click();
+  }
 
   onAvatarSelected(e: any) {
     const file: File | undefined = e?.target?.files?.[0];
-    if (file && file.type.startsWith('image')) this.uploadAvatar(file);
+    if (file) this.chooseAvatar(file);
+    // Clear it, or picking the same file twice in a row raises no change event.
+    if (e?.target) e.target.value = '';
+  }
+
+  onAvatarDragOver(e: DragEvent) { e.preventDefault(); this.avatarDragging = true; }
+  onAvatarDragLeave()            { this.avatarDragging = false; }
+  onAvatarDrop(e: DragEvent) {
+    e.preventDefault();
+    this.avatarDragging = false;
+    const file = e.dataTransfer?.files?.[0];
+    if (file) this.chooseAvatar(file);
+  }
+
+  /** Checks the file before it goes anywhere, then shows it while it uploads. */
+  private chooseAvatar(file: File) {
+    if (!Profile.ALLOWED_TYPES.includes(file.type)) {
+      this.notify('Choose a JPG, PNG, WebP or GIF image');
+      return;
+    }
+    if (file.size > Profile.MAX_AVATAR_BYTES) {
+      const mb = (file.size / (1024 * 1024)).toFixed(1);
+      this.notify(`That image is ${mb} MB — please choose one under 5 MB`);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => { this.avatarPreview = reader.result as string; this.cdr.detectChanges(); };
+    reader.readAsDataURL(file);
+
+    this.uploadAvatar(file);
   }
 
   private uploadAvatar(file: File) {
@@ -212,12 +268,69 @@ user: any;
       next: (res) => {
         // Append a cache-buster so the <img> refreshes immediately.
         if (this.user) this.user.imageUrl = `${res.imageUrl}?t=${Date.now()}`;
+        this.userSvc.setAvatar(res.imageUrl);   // the navbar shows it too
+        this.avatarPreview = null;
         this.uploadingAvatar = false;
+        this.notify('Profile picture updated');
         this.cdr.detectChanges();
       },
       error: () => {
+        this.avatarPreview = null;              // keep showing what is actually saved
         this.uploadingAvatar = false;
-        alert('Could not upload the picture. Please try again.');
+        this.notify('Could not upload the picture. Please try again.');
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  private notify(message: string) {
+    this.snackBar.open(message, 'Ok', { duration: 4000, verticalPosition: 'top' });
+  }
+
+  // ── closing a report off ────────────────────────────────────────────────
+
+  /** The item whose "mark as returned" dialog is open, if any. */
+  resolving: any = null;
+
+  isResolved(item: any): boolean { return item?.status === 'resolved'; }
+
+  /** The AI's suggestions for this item — offered as who it might have gone to. */
+  matchesFor(item: any): MatchItem[] {
+    return this.aiGroups.find((g) => g.itemId === item.id && g.type === item.type)?.matches ?? [];
+  }
+
+  openResolve(item: any) { this.resolving = item; }
+  closeResolve()         { this.resolving = null; }
+
+  onResolved(result: any) {
+    const item = this.resolving;
+    this.resolving = null;
+    if (!item) return;
+
+    Object.assign(item, {
+      status: 'resolved',
+      resolvedAt: result?.resolvedAt ?? new Date().toISOString(),
+      resolvedWithUserId: result?.resolvedWithUserId ?? null,
+      resolvedWithItemId: result?.resolvedWithItemId ?? null,
+      resolvedNote: result?.resolvedNote ?? null,
+    });
+    this.cdr.detectChanges();
+  }
+
+  /** Undo — a report closed by mistake must not be stuck that way. */
+  reopenItem(item: any) {
+    this.http.post<any>(`${API_ORIGIN}/api/LostAndFound/Reopen`, {
+      type: item.type,
+      id: item.id,
+      userId: Number(localStorage.getItem('userid') || 0),
+    }).subscribe({
+      next: () => {
+        Object.assign(item, { status: 'open', resolvedAt: null, resolvedWithUserId: null, resolvedWithItemId: null, resolvedNote: null });
+        this.snackBar.open('Report reopened — it is back in matching', 'Ok', { duration: 3500, verticalPosition: 'top' });
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.snackBar.open(err?.error?.message || 'Could not reopen this report', 'Ok', { duration: 4000, verticalPosition: 'top' });
       },
     });
   }

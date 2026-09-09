@@ -30,7 +30,8 @@
     </div>
 
     <a class="user-chip" routerLink="/profile">
-      <i class="fas fa-user-circle"></i>
+      <img class="chip-avatar" *ngIf="userSvc.avatarUrl(); else chipIcon" [src]="userSvc.avatarUrl()" alt="">
+      <ng-template #chipIcon><i class="fas fa-user-circle"></i></ng-template>
       <span>{{ displayName || 'My Profile' }}</span>
     </a>
     <span class="logout-btn" (click)="logout()">

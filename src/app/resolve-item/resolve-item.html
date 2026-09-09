@@ -1,0 +1,58 @@
+<div class="resolve-overlay" (click)="cancelled.emit()">
+  <div class="resolve-box" (click)="$event.stopPropagation()">
+    <button class="resolve-close" (click)="cancelled.emit()" aria-label="Close"><i class="fas fa-times"></i></button>
+
+    <p class="resolve-title">
+      <i class="fas" [ngClass]="isLost ? 'fa-hand-holding-heart' : 'fa-handshake'"></i>
+      {{ heading }}
+    </p>
+    <p class="resolve-sub">{{ item?.itemName || item?.title }}</p>
+
+    <p class="resolve-question">{{ question }}</p>
+
+    <div class="resolve-options">
+      <label class="resolve-option" *ngFor="let m of matches" [class.picked]="choice === m.id">
+        <input type="radio" name="counterpart" [value]="m.id" [(ngModel)]="choice">
+        <span class="opt-thumb">
+          <img *ngIf="matchImage(m)" [src]="matchImage(m)" alt="" (error)="$event.target.style.display='none'">
+          <i class="fas fa-image" *ngIf="!matchImage(m)"></i>
+        </span>
+        <span class="opt-body">
+          <span class="opt-name">{{ m.userName || 'A user' }}</span>
+          <span class="opt-meta">{{ m.itemName }} · {{ m.matchPercent }}% match</span>
+        </span>
+        <i class="fas fa-circle-check opt-tick"></i>
+      </label>
+
+      <!-- Always available: the match list is a suggestion, not the truth. -->
+      <label class="resolve-option resolve-option-none" [class.picked]="choice === null">
+        <input type="radio" name="counterpart" [value]="null" [(ngModel)]="choice">
+        <span class="opt-thumb"><i class="fas fa-user-slash"></i></span>
+        <span class="opt-body">
+          <span class="opt-name">Someone not on this list</span>
+          <span class="opt-meta">Close it without naming anyone</span>
+        </span>
+        <i class="fas fa-circle-check opt-tick"></i>
+      </label>
+    </div>
+
+    <label class="resolve-note-label">
+      Note <span>(optional)</span>
+      <textarea [(ngModel)]="note" rows="2" maxlength="200"
+                placeholder="e.g. handed over at the library front desk"></textarea>
+    </label>
+
+    <div class="resolve-actions">
+      <button type="button" class="btn-ghost" (click)="cancelled.emit()" [disabled]="saving">Cancel</button>
+      <button type="button" class="btn-confirm" (click)="confirm()" [disabled]="saving">
+        <i class="fas" [class.fa-check]="!saving" [class.fa-spinner]="saving" [class.fa-spin]="saving"></i>
+        {{ saving ? 'Saving…' : confirmLabel }}
+      </button>
+    </div>
+
+    <p class="resolve-foot">
+      <i class="fas fa-circle-info"></i>
+      This closes your own report only — the other person still closes theirs. You can reopen it any time.
+    </p>
+  </div>
+</div>

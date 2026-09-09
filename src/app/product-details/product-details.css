@@ -310,3 +310,29 @@
   .detail-layout { grid-template-columns: 1fr; }
   .matches-sidebar { position: static; }
 }
+
+
+/* ── Closing a report off ── */
+.resolved-banner {
+  display: flex; align-items: flex-start; gap: 11px;
+  margin: 0 0 1.1rem; padding: 12px 14px; border-radius: 12px;
+  background: rgba(22,160,133,.12); border: 1px solid rgba(22,160,133,.35);
+  font-size: .87rem; line-height: 1.5;
+}
+.resolved-banner > i { color: var(--found, #16a085); font-size: 1.05rem; margin-top: 2px; }
+.resolved-banner div { flex: 1; min-width: 0; }
+.resolved-banner p { margin-top: 3px; opacity: .75; font-style: italic; }
+.banner-undo {
+  background: none; border: none; padding: 0; cursor: pointer; flex-shrink: 0;
+  font: inherit; font-weight: 700; text-decoration: underline; color: inherit; opacity: .75;
+}
+.banner-undo:hover { opacity: 1; }
+.resolve-cta {
+  width: 100%; margin-bottom: 1.1rem; padding: 12px;
+  border: none; border-radius: 11px; cursor: pointer;
+  background: var(--found, #16a085); color: #fff;
+  font-family: inherit; font-size: .92rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  transition: background .2s, transform .2s;
+}
+.resolve-cta:hover { background: #138d75; transform: translateY(-1px); }

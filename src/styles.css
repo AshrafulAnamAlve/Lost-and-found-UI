@@ -39,3 +39,25 @@ body {
   background: var(--primary) !important;
   border-radius: 12px !important;
 }
+
+
+/* ── Inline validation message ── */
+.field-error {
+  display: flex; align-items: flex-start; gap: 5px;
+  margin-top: .34rem; font-size: .76rem; font-weight: 600;
+  color: var(--lost); line-height: 1.35;
+}
+.field-error::before { content: "⚠"; font-size: .78rem; line-height: 1.3; }
+
+/* ── Validation: any control the user has touched and left invalid ── */
+.form-group input.ng-invalid.ng-touched,
+.form-group select.ng-invalid.ng-touched,
+.form-group textarea.ng-invalid.ng-touched {
+  border-color: var(--lost) !important;
+  background: rgba(192,57,43,.03);
+}
+.form-group input.ng-valid.ng-touched:not([type="date"]):not([type="time"]),
+.form-group select.ng-valid.ng-touched,
+.form-group textarea.ng-valid.ng-touched {
+  border-color: var(--found);
+}

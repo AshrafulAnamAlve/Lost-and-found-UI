@@ -34,12 +34,14 @@
     <option value="wallet">Wallet / Purse</option>
     <option value="phone">Mobile Phone</option>
     <option value="laptop">Laptop / Tablet</option>
+    <option value="calculator">Calculator</option>
     <option value="keys">Keys</option>
     <option value="bag">Bag / Backpack</option>
-    <option value="documents">Documents / ID</option>
-    <option value="jewelry">Jewelry / Watch</option>
-    <option value="electronics">Electronics</option>
-    <option value="clothing">Clothing</option>
+    <option value="documents">Documents / ID / Passport</option>
+    <option value="watch">Watch</option>
+    <option value="jewelry">Jewelry</option>
+    <option value="electronics">Other Electronics</option>
+    <option value="clothing">Clothing / Shoes</option>
     <option value="other">Other</option>
   </select>
 
@@ -60,6 +62,7 @@
   <!-- Items -->
   <ng-container *ngIf="!loading">
     <div class="item-card" *ngFor="let item of filteredItems"
+         [class.is-resolved]="item.status === 'resolved'"
          [routerLink]="['/productDetails', item.type, item.id]" [queryParams]="{ref:'reports'}">
       <div class="item-img-wrap">
         <img *ngIf="item.image" [src]="item.image" [alt]="item.title" (error)="imgError($event)">
@@ -68,6 +71,9 @@
         </div>
         <span class="type-badge" [class.badge-lost]="item.type==='lost'" [class.badge-found]="item.type==='found'">
           {{ item.type }}
+        </span>
+        <span class="resolved-badge" *ngIf="item.status === 'resolved'">
+          <i class="fas fa-circle-check"></i> {{ item.type === 'lost' ? 'Returned' : 'Handed over' }}
         </span>
       </div>
       <div class="item-body">

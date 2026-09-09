@@ -67,24 +67,122 @@
   max-width: 560px; line-height: 1.75; margin-bottom: 2.5rem;
 }
 
-/* ── Floating cards ── */
-.float-row { display: flex; gap: 1.25rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2.5rem; }
+/* ── Category cards (the four types the photo model knows) ── */
+.float-caption {
+  font-size: .8rem; color: rgba(255,255,255,.42); margin-bottom: 1rem;
+  letter-spacing: .3px;
+}
+.float-row { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2.5rem; }
 .float-card {
-  display: flex; align-items: center; gap: 9px;
+  display: flex; align-items: center; gap: 10px;
   background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.13);
-  padding: .9rem 1.4rem; border-radius: 14px; color: rgba(255,255,255,.85);
-  font-size: .9rem; font-weight: 500;
+  padding: .85rem 1.15rem .85rem 1.3rem; border-radius: 14px; color: rgba(255,255,255,.88);
+  font-size: .9rem; font-weight: 600; font-family: inherit; cursor: pointer;
   animation: floatCard 3s ease-in-out infinite;
+  transition: background .25s, border-color .25s, transform .25s, box-shadow .25s;
 }
 .float-card:nth-child(2) { animation-delay: .5s; }
 .float-card:nth-child(3) { animation-delay: 1s; }
 .float-card:nth-child(4) { animation-delay: 1.5s; }
 @keyframes floatCard { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
-.float-card .icon { font-size: 1.25rem; }
-.icon-bag   { color: #f39c12; }
-.icon-phone { color: #3498db; }
-.icon-key   { color: #e74c3c; }
-.icon-id    { color: #9b59b6; }
+.float-card:hover {
+  background: rgba(255,255,255,.13); border-color: rgba(255,255,255,.3);
+  animation-play-state: paused; transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0,0,0,.28);
+}
+.float-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.float-card .icon { font-size: 1.2rem; }
+.float-label { white-space: nowrap; }
+.float-count {
+  min-width: 24px; padding: 2px 8px; border-radius: 20px;
+  background: rgba(255,255,255,.14); color: #fff;
+  font-size: .74rem; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.float-go { font-size: .72rem; opacity: 0; transition: opacity .25s, transform .25s; transform: translateX(-4px); }
+.float-card:hover .float-go { opacity: .8; transform: translateX(0); }
+/* Nothing filed under this type yet — still browsable, just not advertised. */
+.float-card.is-empty { opacity: .55; }
+.float-card.is-empty .float-count { background: rgba(255,255,255,.08); color: rgba(255,255,255,.6); }
+
+.icon-phone  { color: #3498db; }
+.icon-laptop { color: #9b59b6; }
+.icon-calc   { color: #f39c12; }
+.icon-watch  { color: #1abc9c; }
+
+/* ── Public category preview (visible without an account) ── */
+.preview {
+  width: 100%; max-width: 1080px; margin: 0 auto 2.5rem;
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);
+  border-radius: 20px; padding: 1.5rem 1.6rem 1.7rem; text-align: left;
+  animation: previewIn .3s ease both;
+}
+@keyframes previewIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+.preview-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.2rem; }
+.preview-head h3 { font-family: 'Syne', sans-serif; font-size: 1.15rem; color: #fff; font-weight: 700; }
+.preview-head p { font-size: .8rem; color: rgba(255,255,255,.45); margin-top: 2px; }
+.preview-close {
+  background: rgba(255,255,255,.08); border: none; color: rgba(255,255,255,.65);
+  width: 32px; height: 32px; border-radius: 50%; cursor: pointer; transition: .2s; flex-shrink: 0;
+}
+.preview-close:hover { background: var(--accent); color: #fff; }
+
+.preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 1rem; }
+.preview-card {
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
+  border-radius: 14px; overflow: hidden; cursor: pointer; padding: 0;
+  text-align: left; font-family: inherit; color: inherit;
+  transition: transform .2s, border-color .2s, background .2s;
+}
+.preview-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,.28); background: rgba(255,255,255,.09); }
+.preview-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.preview-img {
+  position: relative; height: 120px; background: rgba(0,0,0,.25);
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(255,255,255,.2); font-size: 1.6rem;
+}
+.preview-img img { width: 100%; height: 100%; object-fit: cover; }
+.preview-badge {
+  position: absolute; top: 8px; left: 8px;
+  background: var(--accent); color: #fff;
+  font-size: .6rem; font-weight: 800; letter-spacing: .6px;
+  padding: 3px 8px; border-radius: 20px;
+}
+.preview-badge.is-found { background: var(--found); }
+.preview-badge-done {
+  top: auto; bottom: 8px; left: 8px; background: var(--found);
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.preview-body { padding: .8rem .9rem .9rem; }
+.preview-name {
+  font-size: .88rem; font-weight: 700; color: #fff; margin-bottom: .35rem;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.preview-meta {
+  font-size: .74rem; color: rgba(255,255,255,.5);
+  display: flex; align-items: center; gap: 6px; margin-top: 2px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.preview-meta i { width: 11px; font-size: .68rem; }
+.preview-locked {
+  margin-top: .6rem; padding-top: .55rem; border-top: 1px solid rgba(255,255,255,.08);
+  font-size: .7rem; font-weight: 600; color: rgba(255,255,255,.38);
+  display: flex; align-items: center; gap: 6px;
+}
+.preview-empty {
+  color: rgba(255,255,255,.5); font-size: .88rem;
+  display: flex; align-items: center; gap: 10px;
+  padding: 1.2rem; background: rgba(255,255,255,.04); border-radius: 12px;
+}
+.preview-more { margin-top: 1.1rem; font-size: .82rem; color: rgba(255,255,255,.5); }
+.link-btn {
+  background: none; border: none; padding: 0; font: inherit; cursor: pointer;
+  color: var(--accent); font-weight: 700; text-decoration: underline;
+}
+
+@media (max-width: 560px) {
+  .preview { padding: 1.2rem 1rem 1.4rem; border-radius: 16px; }
+  .preview-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .8rem; }
+}
 
 /* ── CTA buttons ── */
 .cta-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 1.5rem; }
@@ -110,6 +208,14 @@
 .stat-num { font-family: 'Syne', sans-serif; font-size: 2.2rem; font-weight: 800; color: #fff; }
 .stat-num span { color: var(--accent); }
 .stat-label { font-size: .75rem; color: rgba(255,255,255,.45); text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
+.stat-num span { font-variant-numeric: tabular-nums; }
+.stats-note {
+  position: relative; z-index: 10;
+  text-align: center; font-size: .76rem; line-height: 1.6;
+  color: rgba(255,255,255,.38); padding: 0 2rem 2.5rem;
+  max-width: 640px; margin: -1rem auto 0;
+}
+.stats-note i { color: var(--found); margin-right: 5px; }
 
 /* ── Features ── */
 .features-section { background: #fff; padding: 5rem 2rem; }
@@ -187,3 +293,27 @@
   text-align: center; padding: 1.5rem; font-size: .83rem;
   position: relative; z-index: 10;
 }
+
+/* ── Password strength meter + rule checklist (sign-up) ── */
+.pw-strength { display: flex; align-items: center; gap: 10px; margin-top: .55rem; }
+.pw-bar {
+  flex: 1; height: 6px; background: var(--border);
+  border-radius: 4px; overflow: hidden;
+}
+.pw-bar-fill { height: 100%; width: 0; border-radius: 4px; transition: width .25s ease, background .25s ease; }
+.pw-bar-fill.weak   { background: var(--lost); }
+.pw-bar-fill.medium { background: var(--gold); }
+.pw-bar-fill.strong { background: var(--found); }
+.pw-label { font-size: .74rem; font-weight: 700; min-width: 52px; text-align: right; }
+.pw-label.weak   { color: var(--lost); }
+.pw-label.medium { color: var(--gold); }
+.pw-label.strong { color: var(--found); }
+
+.pw-rules { list-style: none; margin: .6rem 0 0; padding: 0; display: grid; gap: .3rem; }
+.pw-rules li {
+  display: flex; align-items: center; gap: 7px;
+  font-size: .76rem; color: var(--muted); transition: color .2s ease;
+}
+.pw-rules li i { font-size: .68rem; width: 12px; text-align: center; transition: color .2s ease; }
+.pw-rules li.met { color: var(--found); font-weight: 600; }
+.pw-rules li.met i { color: var(--found); }

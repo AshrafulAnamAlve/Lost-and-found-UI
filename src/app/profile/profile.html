@@ -3,20 +3,42 @@
   <div class="container">
     <div class="profile-card profile-display">
       <div class="profile-top">
-        <div class="avatar-wrap" (click)="triggerAvatarUpload()" title="Change profile picture">
-          <img class="avatar-img" [src]="avatarUrl()" alt="Avatar">
+        <!-- Click it, or drop a file on it. The button below says so out loud, because
+             a hover-only overlay is invisible on a phone. -->
+        <div class="avatar-wrap"
+             [class.dragging]="avatarDragging"
+             (click)="triggerAvatarUpload()"
+             (dragover)="onAvatarDragOver($event)"
+             (dragleave)="onAvatarDragLeave()"
+             (drop)="onAvatarDrop($event)"
+             title="Change profile picture">
+          <img class="avatar-img" *ngIf="avatarSrc" [src]="avatarSrc" alt="Your profile picture">
+          <div class="avatar-initials" *ngIf="!avatarSrc">{{ initials }}</div>
           <div class="avatar-overlay" [class.busy]="uploadingAvatar">
             <i class="fas" [ngClass]="uploadingAvatar ? 'fa-spinner fa-spin' : 'fa-camera'"></i>
             <span>{{ uploadingAvatar ? 'Uploading…' : 'Change photo' }}</span>
           </div>
-          <input #avatarInput type="file" accept="image/*" hidden (change)="onAvatarSelected($event)">
+          <input #avatarInput type="file" accept="image/jpeg,image/png,image/webp,image/gif"
+                 hidden (change)="onAvatarSelected($event)">
         </div>
         <div class="profile-info">
           <!-- user arrives from an HTTP call, so it is undefined on first render -->
           <h2 class="profile-name">{{ user?.firstName }} {{ user?.lastName }}</h2>
           <p class="profile-detail"><i class="fas fa-envelope"></i> {{user?.email}}</p>
+          <p class="profile-detail" *ngIf="user?.phone"><i class="fas fa-phone"></i> {{user?.phone}}</p>
+          <p class="profile-detail" *ngIf="user?.secondaryPhone">
+            <i class="fas fa-phone-alt"></i> {{user?.secondaryPhone}} <span class="detail-tag">alternate</span>
+          </p>
           <p class="profile-detail"><i class="fas fa-map-marker-alt"></i> {{user?.city}}, Bangladesh</p>
           <p class="profile-detail"><i class="fas fa-calendar-alt"></i> Member since Jan 2026</p>
+
+          <div class="avatar-actions">
+            <button type="button" class="avatar-btn" (click)="triggerAvatarUpload()" [disabled]="uploadingAvatar">
+              <i class="fas" [ngClass]="uploadingAvatar ? 'fa-spinner fa-spin' : 'fa-camera'"></i>
+              {{ uploadingAvatar ? 'Uploading…' : (avatarSrc ? 'Change photo' : 'Add a photo') }}
+            </button>
+            <span class="avatar-hint">JPG, PNG, WebP or GIF · up to 5 MB · or drop one on the circle</span>
+          </div>
         </div>
       </div>
     </div>
@@ -78,11 +100,14 @@
     <section class="posted-items" *ngIf="userItems.length > 0; else noReports">
       <h3>Your Posted Items</h3>
       <div class="report-cards">
-        <article class="report-card" *ngFor="let item of userItems">
+        <article class="report-card" *ngFor="let item of userItems" [class.is-resolved]="isResolved(item)">
           <div class="card-image">
             <img [src]="item.image" (error)="imgError($event)" alt="{{item.title}}">
             <span class="badge" [ngClass]="item.type === 'lost' ? 'item-lost' : 'item-found'">
               {{ item.type | uppercase }}
+            </span>
+            <span class="badge badge-resolved" *ngIf="isResolved(item)">
+              <i class="fas fa-circle-check"></i> {{ item.type === 'lost' ? 'RETURNED' : 'HANDED OVER' }}
             </span>
             <div class="card-controls">
               <button class="icon edit" title="Edit" (click)="editItem(item)"><i class="fas fa-edit"></i></button>
@@ -96,6 +121,21 @@
               <i class="fas fa-map-marker-alt"></i> {{ item.location }} &nbsp;
               <i class="fas fa-calendar-alt"></i> {{ item.date | date:'mediumDate' }}
             </div>
+            <!-- Closing a report off. Open reports get the button; closed ones get the
+                 undo, because a mis-tap must never be permanent. -->
+            <button class="resolve-btn" *ngIf="!isResolved(item)" (click)="openResolve(item)">
+              <i class="fas" [ngClass]="item.type === 'lost' ? 'fa-hand-holding-heart' : 'fa-handshake'"></i>
+              {{ item.type === 'lost' ? 'Mark as returned' : 'Mark as handed over' }}
+            </button>
+
+            <div class="resolved-note" *ngIf="isResolved(item)">
+              <i class="fas fa-circle-check"></i>
+              <span>
+                Closed {{ item.resolvedAt | date: 'mediumDate' }}<span *ngIf="item.resolvedNote"> — {{ item.resolvedNote }}</span>
+              </span>
+              <button class="reopen-btn" (click)="reopenItem(item)">Reopen</button>
+            </div>
+
             <button class="view-btn" [routerLink]="['/productDetails', item.type, item.id]" [queryParams]="{ref: 'profile'}">
               View Details
             </button>
@@ -103,6 +143,14 @@
         </article>
       </div>
     </section>
+
+    <app-resolve-item
+      *ngIf="resolving"
+      [item]="resolving"
+      [matches]="matchesFor(resolving)"
+      (resolved)="onResolved($event)"
+      (cancelled)="closeResolve()">
+    </app-resolve-item>
 
     <ng-template #noReports>
       <p class="no-items" style="color:#eaf4ff; margin-top:20px;">

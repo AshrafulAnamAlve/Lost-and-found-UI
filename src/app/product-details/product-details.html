@@ -27,6 +27,24 @@
         <div class="detail-body">
           <h1 class="item-name">{{ item.itemName }}</h1>
 
+          <!-- Already settled: say so before anything else, so nobody starts
+               chasing an item that is already back with its owner. -->
+          <div class="resolved-banner" *ngIf="isResolved">
+            <i class="fas fa-circle-check"></i>
+            <div>
+              <strong>{{ item.type === 'lost' ? 'Returned to its owner' : 'Handed over' }}</strong>
+              <span *ngIf="item.resolvedAt"> on {{ item.resolvedAt | date: 'mediumDate' }}</span>
+              <p *ngIf="item.resolvedNote">“{{ item.resolvedNote }}”</p>
+            </div>
+            <button class="banner-undo" *ngIf="isMine" (click)="reopen()">Reopen</button>
+          </div>
+
+          <!-- The owner's own copy of the report gets the button to close it. -->
+          <button class="resolve-cta" *ngIf="isMine && !isResolved" (click)="showResolve = true">
+            <i class="fas" [ngClass]="item.type === 'lost' ? 'fa-hand-holding-heart' : 'fa-handshake'"></i>
+            {{ item.type === 'lost' ? 'I got it back — mark as returned' : 'I handed it over — mark as returned' }}
+          </button>
+
           <div class="meta-grid">
             <div class="meta-cell" *ngIf="item.category">
               <i class="fas fa-tag"></i><div><small>Category</small><span>{{ item.category }}</span></div>
@@ -247,3 +265,11 @@
     </div>
   </div>
 </div>
+
+<app-resolve-item
+  *ngIf="showResolve && item"
+  [item]="item"
+  [matches]="matches"
+  (resolved)="onResolved($event)"
+  (cancelled)="showResolve = false">
+</app-resolve-item>

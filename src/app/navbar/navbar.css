@@ -53,3 +53,11 @@
   animation: badgePop .3s cubic-bezier(.34,1.56,.64,1);
 }
 @keyframes badgePop { from { transform: scale(0); } to { transform: scale(1); } }
+
+
+/* The signed-in user's own picture, in place of the generic icon. */
+.chip-avatar {
+  width: 24px; height: 24px; border-radius: 50%;
+  object-fit: cover; flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,.25);
+}

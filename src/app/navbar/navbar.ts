@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { MatchService } from '../match.service';
 import { MessageService } from '../message.service';
+import { UserService } from '../user.service';
 
 @Component({
   selector: 'app-navbar',
@@ -13,6 +14,7 @@ import { MessageService } from '../message.service';
 export class Navbar implements OnInit {
   matchSvc    = inject(MatchService);
   messageSvc  = inject(MessageService);
+  userSvc     = inject(UserService);
   router      = inject(Router);
   displayName = '';
 
@@ -24,6 +26,8 @@ export class Navbar implements OnInit {
       // Open the realtime chat connection + load the unread badge.
       this.messageSvc.connect();
       this.messageSvc.loadUnreadCount();
+      // Their own picture in the corner, cached so it paints straight away.
+      this.userSvc.loadOnce();
     }
   }
 
@@ -36,6 +40,7 @@ export class Navbar implements OnInit {
 
   logout() {
     this.messageSvc.disconnect();
+    this.userSvc.clear();
     localStorage.clear();
     this.router.navigateByUrl('/login');
   }

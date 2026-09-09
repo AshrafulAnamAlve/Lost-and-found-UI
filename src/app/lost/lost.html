@@ -60,6 +60,7 @@
         <div class="form-group">
           <label>Item Name *</label>
           <input type="text" formControlName="itemName" placeholder="e.g. Black Leather Wallet, iPhone 14 Pro">
+          <p class="field-error" *ngIf="err('itemName') as msg">{{ msg }}</p>
         </div>
         <div class="form-group">
           <label>Category *</label>
@@ -78,19 +79,23 @@
             <option value="clothing">Clothing / Shoes</option>
             <option value="other">Other</option>
           </select>
+          <p class="field-error" *ngIf="err('category') as msg">{{ msg }}</p>
         </div>
         <div class="form-group">
           <label>Brand / Model</label>
           <input type="text" formControlName="brand" placeholder="e.g. Apple, Samsung, Nike">
+          <p class="field-error" *ngIf="err('brand') as msg">{{ msg }}</p>
         </div>
         <div class="form-group">
           <label>Primary Color *</label>
           <input type="text" formControlName="color" placeholder="e.g. Black, Navy Blue">
+          <p class="field-error" *ngIf="err('color') as msg">{{ msg }}</p>
         </div>
         <div class="form-group full-width">
           <label>Detailed Description *</label>
           <textarea formControlName="description" rows="3"
             placeholder="Describe your item — unique marks, serial numbers, scratches, stickers, etc."></textarea>
+          <p class="field-error" *ngIf="err('description') as msg">{{ msg }}</p>
         </div>
       </div>
     </div>
@@ -101,10 +106,12 @@
         <div class="form-group">
           <label>Last Seen Location *</label>
           <input type="text" formControlName="location" placeholder="e.g. BUBT Cafeteria, Library, Room 301">
+          <p class="field-error" *ngIf="err('location') as msg">{{ msg }}</p>
         </div>
         <div class="form-group">
           <label>Date Lost *</label>
           <input type="date" formControlName="dateLost">
+          <p class="field-error" *ngIf="err('dateLost') as msg">{{ msg }}</p>
         </div>
         <div class="form-group">
           <label>Approximate Time</label>
@@ -113,6 +120,7 @@
         <div class="form-group">
           <label>Reward Offered 🏆</label>
           <input type="text" formControlName="Reward" placeholder="e.g. 500 BDT or None">
+          <p class="field-error" *ngIf="err('Reward') as msg">{{ msg }}</p>
         </div>
       </div>
     </div>
@@ -182,30 +190,48 @@
       </ng-container>
     </div>
 
+    <!-- Contact details come from the signed-in user's profile — never retyped here,
+         so one person cannot end up in the database under three phone numbers. -->
     <div class="form-card">
       <div class="section-title"><i class="fas fa-address-card"></i> Contact Information</div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label>Your Name *</label>
-          <input type="text" formControlName="userName" placeholder="Full name">
-        </div>
-        <div class="form-group">
-          <label>Email *</label>
-          <input type="email" formControlName="email" placeholder="your@email.com">
-        </div>
-        <div class="form-group">
-          <label>Phone Number *</label>
-          <input type="tel" formControlName="phoneNumber" placeholder="+880...">
-        </div>
-        <div class="form-group">
-          <label>Alternative Contact</label>
-          <input type="text" formControlName="altContact" placeholder="Secondary number or contact">
-        </div>
+
+      <div class="contact-loading" *ngIf="!profileLoaded">
+        <i class="fas fa-spinner fa-spin"></i> Loading your contact details…
       </div>
+
+      <ng-container *ngIf="profileLoaded">
+        <div class="contact-card" *ngIf="contactReady">
+          <div class="contact-avatar"><i class="fas fa-user"></i></div>
+          <div class="contact-body">
+            <div class="contact-name">{{ contact.userName }}</div>
+            <div class="contact-line"><i class="fas fa-envelope"></i> {{ contact.email }}</div>
+            <div class="contact-line"><i class="fas fa-phone"></i> {{ contact.phoneNumber }}</div>
+            <div class="contact-line" *ngIf="contact.altContact">
+              <i class="fas fa-phone-alt"></i> {{ contact.altContact }} <span class="contact-tag">alternate</span>
+            </div>
+          </div>
+          <a class="contact-edit" routerLink="/profile"><i class="fas fa-user-pen"></i> Profile</a>
+        </div>
+
+        <p class="contact-note" *ngIf="contactReady">
+          <i class="fas fa-lock"></i>
+          Taken from your profile — whoever finds your item will use this to reach you.
+          To change it, update your profile.
+        </p>
+
+        <div class="contact-missing" *ngIf="!contactReady">
+          <i class="fas fa-exclamation-triangle"></i>
+          <span>
+            <strong>Your profile has no contact details yet.</strong>
+            Nobody could tell you they found your item, so add them before reporting.
+            <a routerLink="/profile">Go to your profile</a>
+          </span>
+        </div>
+      </ng-container>
     </div>
 
     <div class="form-actions">
-      <button type="button" class="btn-submit" [disabled]="isSubmitting" (click)="lostSubmit()">
+      <button type="button" class="btn-submit" [disabled]="isSubmitting || !contactReady" (click)="lostSubmit()">
         <i class="fas" [class.fa-paper-plane]="!isSubmitting" [class.fa-spinner]="isSubmitting"
            [class.fa-spin]="isSubmitting"></i>
         {{ isSubmitting ? 'Submitting…' : 'Submit Lost Report' }}

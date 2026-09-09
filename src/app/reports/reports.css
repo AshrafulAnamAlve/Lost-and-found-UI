@@ -106,3 +106,15 @@
 .spinner-wrap { grid-column: 1/-1; display: flex; justify-content: center; padding: 4rem; }
 .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to{transform:rotate(360deg)} }
+
+
+/* ── A report that has been settled ── */
+.item-card.is-resolved img { filter: grayscale(.5) brightness(.85); }
+.resolved-badge {
+  position: absolute; bottom: 10px; left: 10px;
+  background: var(--found); color: #fff;
+  font-size: .66rem; font-weight: 800; letter-spacing: .4px;
+  padding: 4px 9px; border-radius: 20px;
+  display: inline-flex; align-items: center; gap: 5px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.25);
+}

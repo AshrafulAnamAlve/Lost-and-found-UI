@@ -4,10 +4,12 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { API_BASE as API, resolveImageUrl } from '../api';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { ResolveItem } from '../resolve-item/resolve-item';
 
 @Component({
   selector: 'app-product-details',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ResolveItem],
   templateUrl: './product-details.html',
   styleUrl: './product-details.css',
 })
@@ -24,7 +26,43 @@ export class ProductDetails implements OnInit {
   route = inject(ActivatedRoute);
   cdr   = inject(ChangeDetectorRef);
   myId  = Number(localStorage.getItem('userid') || 0);
+  snackBar = inject(MatSnackBar);
   constructor(private router: Router) {}
+
+  // ── closing this report off ─────────────────────────────────────────────
+  showResolve = false;
+
+  /** Only the person who filed the report can close it — the API enforces this too. */
+  get isMine(): boolean { return !!this.item && this.item.userId === this.myId; }
+  get isResolved(): boolean { return this.item?.status === 'resolved'; }
+
+  onResolved(result: any) {
+    this.showResolve = false;
+    if (!this.item) return;
+    Object.assign(this.item, {
+      status: 'resolved',
+      resolvedAt: result?.resolvedAt ?? new Date().toISOString(),
+      resolvedWithUserId: result?.resolvedWithUserId ?? null,
+      resolvedWithItemId: result?.resolvedWithItemId ?? null,
+      resolvedNote: result?.resolvedNote ?? null,
+    });
+    this.cdr.detectChanges();
+  }
+
+  reopen() {
+    this.http.post<any>(`${API}/Reopen`, {
+      type: this.item.type,
+      id: this.item.id,
+      userId: this.myId,
+    }).subscribe({
+      next: () => {
+        Object.assign(this.item, { status: 'open', resolvedAt: null, resolvedWithUserId: null, resolvedWithItemId: null, resolvedNote: null });
+        this.snackBar.open('Report reopened — it is back in matching', 'Ok', { duration: 3500, verticalPosition: 'top' });
+        this.cdr.detectChanges();
+      },
+      error: (err) => this.snackBar.open(err?.error?.message || 'Could not reopen this report', 'Ok', { duration: 4000, verticalPosition: 'top' }),
+    });
+  }
 
   // Open the in-app chat with a user (item owner or a match owner).
   chatWith(userId: number, name: string, itemId: number, itemType: string, itemName: string) {
