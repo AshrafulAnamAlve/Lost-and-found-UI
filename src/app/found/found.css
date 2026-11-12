@@ -4,7 +4,7 @@
   background: linear-gradient(135deg, var(--found) 0%, #0e6655 100%);
   padding: 2.5rem 3rem; color: #fff;
 }
-.form-hero h1 { font-family: 'Syne', sans-serif; font-size: 1.75rem; font-weight: 700; margin-bottom: .3rem; display: flex; align-items: center; gap: 12px; }
+.form-hero h1 { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.75rem; font-weight: 700; margin-bottom: .3rem; display: flex; align-items: center; gap: 12px; }
 .form-hero p  { opacity: .75; font-size: .93rem; }
 
 /* Safety warning banner for finders */
@@ -28,7 +28,7 @@
 .form-card:hover { box-shadow: var(--shadow-lg); transition: box-shadow .3s; }
 
 .section-title {
-  font-family: 'Syne', sans-serif; font-size: .95rem; font-weight: 700;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: .95rem; font-weight: 700;
   color: var(--primary); margin-bottom: 1.25rem;
   padding-bottom: .75rem; border-bottom: 2px solid var(--bg);
   display: flex; align-items: center; gap: 8px;
@@ -124,13 +124,10 @@
 .btn-submit:hover { background: #c73652; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(22,160,133,.4); }
 .btn-submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
 
-/* Offset for sidenav */
-:host { padding-left: 220px; }
-@media(max-width:768px) { :host { padding-left: 0; } }
 
 /* ══ AI Match Panel (same as lost but accent = found color) ═════════════════ */
 .ai-match-panel {
-  position: fixed; bottom: 0; left: 220px; right: 0; z-index: 900;
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 900;
   background: #fff; border-top: 3px solid var(--found);
   box-shadow: 0 -8px 40px rgba(0,0,0,.15);
   animation: slideUp .35s cubic-bezier(.25,.8,.25,1);
@@ -139,7 +136,7 @@
 @keyframes slideUp { from { transform: translateY(100%); opacity:0; } to { transform: translateY(0); opacity:1; } }
 .ai-match-panel-inner { max-width: 900px; margin: 0 auto; padding: 1.25rem 1.5rem; }
 .ai-panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:.4rem; }
-.ai-panel-title { font-family:'Syne',sans-serif; font-size:1.05rem; font-weight:700; color:var(--primary); display:flex; align-items:center; gap:8px; }
+.ai-panel-title { font-family:'Plus Jakarta Sans',sans-serif; font-size:1.05rem; font-weight:700; color:var(--primary); display:flex; align-items:center; gap:8px; }
 .ai-panel-title i { color:var(--found); }
 .ai-tag { background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; font-size:.65rem; padding:2px 8px; border-radius:20px; font-weight:700; }
 .ai-panel-close { background:var(--bg); border:none; width:32px; height:32px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:.9rem; transition:.2s; }
@@ -218,3 +215,33 @@
   .contact-card { flex-wrap: wrap; }
   .contact-edit { width: 100%; justify-content: center; }
 }
+
+/* ── Single photo, edit mode, matching confidence ── */
+.req { color: var(--lost); }
+.section-optional { font-weight: 500; color: var(--muted); font-size: .8rem; margin-left: 4px; }
+label.upload-zone { display: block; }
+.photo-current {
+  display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;
+  padding: .75rem; border: 1px solid var(--border); border-radius: 12px; background: #fafbfd;
+}
+.photo-current img { width: 96px; height: 96px; object-fit: cover; border-radius: 10px; flex-shrink: 0; }
+.photo-current-info { display: flex; flex-direction: column; gap: .3rem; font-size: .85rem; color: var(--muted); min-width: 0; }
+.photo-current-info strong { color: var(--text); }
+.photo-current-info span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.photo-remove {
+  align-self: flex-start; border: 1px solid var(--border); background: #fff; color: var(--lost);
+  border-radius: 8px; padding: 5px 12px; font-weight: 600; font-size: .8rem; cursor: pointer;
+}
+.photo-remove:hover { background: rgba(192,57,43,.06); }
+.form-loading { text-align: center; color: var(--muted); padding: 3rem 0; }
+.is-hidden { display: none; }
+.form-actions { gap: .75rem; }
+.btn-cancel {
+  border: 1px solid var(--border); background: #fff; color: var(--text);
+  padding: .85rem 1.6rem; border-radius: 12px; font-weight: 600; cursor: pointer;
+}
+.btn-cancel:hover { background: #f3f5f9; }
+.match-pct { padding: 3px 10px; border-radius: 20px; font-size: .78rem; font-weight: 700; }
+.match-pct.conf-strong   { background: rgba(22,160,133,.12); color: var(--found); }
+.match-pct.conf-possible { background: rgba(243,156,18,.14); color: #b9770e; }
+.match-pct.conf-weak     { background: rgba(108,117,125,.12); color: var(--muted); }

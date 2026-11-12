@@ -5,6 +5,8 @@ import { ActivatedRoute } from '@angular/router';
 import { Navbar } from '../navbar/navbar';
 import { MessageService, Conversation } from '../message.service';
 import { CallService } from '../call.service';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { session } from '../session';
 
 @Component({
   selector: 'app-messages',
@@ -17,7 +19,9 @@ export class Messages implements OnInit {
   callSvc = inject(CallService);
   route   = inject(ActivatedRoute);
 
-  myId = Number(localStorage.getItem('userid') || 0);
+  private snackBar = inject(MatSnackBar);
+  myId = session.userId();
+  sending = false;
   draft = '';
   partnerName = '';
   ctx: { itemId?: number; itemType?: string; itemName?: string } = {};
@@ -57,11 +61,19 @@ export class Messages implements OnInit {
     this.msgSvc.loadConversation(c.partnerId);
   }
 
-  send() {
+  async send() {
     const partner = this.activePartner();
-    if (!this.draft.trim() || partner == null) return;
-    this.msgSvc.send(partner, this.draft, this.ctx);
+    const text = this.draft.trim();
+    if (!text || partner == null || this.sending) return;
+    this.sending = true;
     this.draft = '';
+    const ok = await this.msgSvc.send(partner, text, this.ctx);
+    this.sending = false;
+    if (!ok) {
+      this.draft = text;   // give the text back so nothing is lost
+      this.snackBar.open('Message not sent. Check your connection and try again.', 'OK',
+        { duration: 5000, verticalPosition: 'top', panelClass: 'snack-error' });
+    }
   }
 
   startCall(type: 'audio' | 'video') {

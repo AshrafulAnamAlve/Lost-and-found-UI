@@ -1,9 +1,13 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, HostListener, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
+import { NavigationEnd, Router, RouterModule } from '@angular/router';
+import { filter } from 'rxjs/operators';
 import { MatchService } from '../match.service';
 import { MessageService } from '../message.service';
 import { UserService } from '../user.service';
+import { API_BASE } from '../api';
+import { session } from '../session';
 
 @Component({
   selector: 'app-navbar',
@@ -16,32 +20,49 @@ export class Navbar implements OnInit {
   messageSvc  = inject(MessageService);
   userSvc     = inject(UserService);
   router      = inject(Router);
-  displayName = '';
+  private http = inject(HttpClient);
+  displayName = session.name();
+  menuOpen = false;
 
   ngOnInit() {
-    const uid = localStorage.getItem('userid');
-    if (uid) {
-      const cached = localStorage.getItem('username');
-      if (cached) this.displayName = cached;
-      // Open the realtime chat connection + load the unread badge.
-      this.messageSvc.connect();
-      this.messageSvc.loadUnreadCount();
-      // Their own picture in the corner, cached so it paints straight away.
-      this.userSvc.loadOnce();
+    if (!session.isLoggedIn()) return;
+
+    // Open the realtime chat connection + load the unread badge.
+    this.messageSvc.connect();
+    this.messageSvc.loadUnreadCount();
+    this.userSvc.loadOnce();
+
+    // The name is cached at sign-in; fetch it if this session started without one.
+    if (!this.displayName) {
+      this.http.get<any>(`${API_BASE}/getUser/${session.userId()}`).subscribe({
+        next: (u) => {
+          const name = `${u.firstName || ''} ${u.lastName || ''}`.trim();
+          session.setName(name);
+          this.displayName = name;
+        },
+        error: () => {},
+      });
     }
+
+    this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe(() => (this.menuOpen = false));
   }
+
+  /** First name only - the chip has little room. */
+  get shortName(): string { return (this.displayName || '').split(' ')[0] || 'My profile'; }
 
   get unseenCount() { return this.matchSvc.unseen(); }
   get msgUnread()   { return this.messageSvc.unreadCount(); }
 
-  goToMatches() {
-    this.router.navigateByUrl('/matches');
-  }
+  toggleMenu() { this.menuOpen = !this.menuOpen; }
+
+  @HostListener('window:resize')
+  onResize() { if (window.innerWidth > 900) this.menuOpen = false; }
 
   logout() {
     this.messageSvc.disconnect();
     this.userSvc.clear();
-    localStorage.clear();
+    this.matchSvc.clear();
+    session.clear();
     this.router.navigateByUrl('/login');
   }
 }

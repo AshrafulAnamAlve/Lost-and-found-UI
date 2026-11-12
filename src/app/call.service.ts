@@ -1,5 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MessageService } from './message.service';
+import { session } from './session';
 
 // STUN (discovery) + free public TURN relay (Open Relay) so calls also work
 // across different networks / NAT once the app is served over HTTPS.
@@ -17,6 +19,11 @@ export type CallState = 'idle' | 'calling' | 'incoming' | 'connected';
 @Injectable({ providedIn: 'root' })
 export class CallService {
   private msg = inject(MessageService);
+  private snackBar = inject(MatSnackBar);
+
+  private notify(message: string) {
+    this.snackBar.open(message, 'OK', { duration: 5000, verticalPosition: 'top' });
+  }
   private pc?: RTCPeerConnection;
   private pendingIce: RTCIceCandidateInit[] = [];
   private remoteDescSet = false;
@@ -31,8 +38,8 @@ export class CallService {
   muted        = signal(false);
   cameraOff    = signal(false);
 
-  private get myId()   { return Number(localStorage.getItem('userid') || 0); }
-  private get myName() { return localStorage.getItem('username') || 'User'; }
+  private get myId()   { return session.userId(); }
+  private get myName() { return session.name() || 'User'; }
 
   constructor() {
     this.msg.on('IncomingCall',  (d: any) => this.onIncoming(d));
@@ -48,7 +55,7 @@ export class CallService {
   async startCall(toUserId: number, name: string, type: 'audio' | 'video') {
     if (this.state() !== 'idle' || !toUserId) return;
     if (Number(toUserId) === this.myId) {
-      alert("You can't call yourself. To test, open the other user in a different browser or an incognito window.");
+      this.notify('You cannot call yourself.');
       return;
     }
     this.callType.set(type);
@@ -58,7 +65,7 @@ export class CallService {
       await this.initLocalMedia(type);
     } catch {
       this.cleanup();
-      alert('Please allow camera & microphone access to start a call.');
+      this.notify('Allow camera and microphone access in your browser to start a call.');
       return;
     }
     this.createPc(toUserId);
@@ -66,7 +73,7 @@ export class CallService {
     this.msg.invoke('CallUser', toUserId, this.myId, this.myName, type);
     // Give up if nobody answers (also covers the other user being offline).
     this.callTimer = setTimeout(() => {
-      if (this.state() === 'calling') { this.cleanup(); alert('No answer.'); }
+      if (this.state() === 'calling') { const who = this.remoteName() || 'The other person'; this.cleanup(); this.notify(`${who} did not answer.`); }
     }, 35000);
   }
 
@@ -102,7 +109,7 @@ export class CallService {
     try {
       await this.initLocalMedia(this.callType());
     } catch {
-      alert('Please allow camera & microphone access to accept the call.');
+      this.notify('Allow camera and microphone access in your browser to answer the call.');
       this.reject();
       return;
     }
@@ -139,7 +146,7 @@ export class CallService {
     this.pendingIce = [];
   }
 
-  private onRejected() { alert('Call was declined.'); this.cleanup(); }
+  private onRejected() { this.notify('The call was declined.'); this.cleanup(); }
 
   private async initLocalMedia(type: 'audio' | 'video') {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === 'video' });
@@ -166,7 +173,7 @@ export class CallService {
       if (e.candidate) this.msg.invoke('SendIce', otherId, this.myId, JSON.stringify(e.candidate));
     };
     pc.onconnectionstatechange = () => {
-      if (pc.connectionState === 'failed') { alert('Call connection failed (network/firewall).'); this.cleanup(); }
+      if (pc.connectionState === 'failed') { this.notify('The call could not connect. Check your network and try again.'); this.cleanup(); }
     };
     this.pc = pc;
   }

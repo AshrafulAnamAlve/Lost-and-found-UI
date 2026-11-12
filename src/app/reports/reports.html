@@ -2,51 +2,31 @@
 
 <div class="reports-header">
   <h1><i class="fas fa-list-ul"></i> Browse Lost &amp; Found Items</h1>
-  <p>Search through all reports — our AI highlights the best matches for you</p>
+  <p>Search every report by name, description, brand, colour or place</p>
 </div>
 
 <div class="filters-bar">
-  <div class="tab-group">
-    <button class="tab-btn"
-      [class.active-all]="activeTab === 'all'"
-      [class.active-lost]="activeTab === 'lost'"
-      [class.active-found]="activeTab === 'found'"
-      (click)="setTab('all')" [class.tab-btn]="true"
-      [style.background]="activeTab==='all'?'var(--accent2)':''"
-      [style.color]="activeTab==='all'?'#fff':''">All</button>
-    <button class="tab-btn"
-      [style.background]="activeTab==='lost'?'var(--accent)':''"
-      [style.color]="activeTab==='lost'?'#fff':''">
-      <span (click)="setTab('lost')">&#x26AA; Lost</span></button>
-    <button class="tab-btn"
-      [style.background]="activeTab==='found'?'var(--found)':''"
-      [style.color]="activeTab==='found'?'#fff':''">
-      <span (click)="setTab('found')">&#x26AB; Found</span></button>
+  <div class="tab-group" role="tablist">
+    <button type="button" class="tab-btn" role="tab" [class.tab-active-all]="activeTab === 'all'"
+            [attr.aria-selected]="activeTab === 'all'" (click)="setTab('all')">All</button>
+    <button type="button" class="tab-btn" role="tab" [class.tab-active-lost]="activeTab === 'lost'"
+            [attr.aria-selected]="activeTab === 'lost'" (click)="setTab('lost')"><span class="dot dot-lost"></span> Lost</button>
+    <button type="button" class="tab-btn" role="tab" [class.tab-active-found]="activeTab === 'found'"
+            [attr.aria-selected]="activeTab === 'found'" (click)="setTab('found')"><span class="dot dot-found"></span> Found</button>
   </div>
 
   <div class="search-wrap">
     <i class="fas fa-search"></i>
-    <input type="text" [(ngModel)]="filters.keyword" (input)="search()" placeholder="Search by item name…">
+    <input type="search" [(ngModel)]="filters.keyword" (input)="search()" placeholder="Search items..." aria-label="Search items">
   </div>
 
-  <select class="filter-sel" [(ngModel)]="filters.category" (change)="search()">
-    <option value="">All Categories</option>
-    <option value="wallet">Wallet / Purse</option>
-    <option value="phone">Mobile Phone</option>
-    <option value="laptop">Laptop / Tablet</option>
-    <option value="calculator">Calculator</option>
-    <option value="keys">Keys</option>
-    <option value="bag">Bag / Backpack</option>
-    <option value="documents">Documents / ID / Passport</option>
-    <option value="watch">Watch</option>
-    <option value="jewelry">Jewelry</option>
-    <option value="electronics">Other Electronics</option>
-    <option value="clothing">Clothing / Shoes</option>
-    <option value="other">Other</option>
+  <select class="filter-sel" [(ngModel)]="filters.category" (change)="search()" aria-label="Category">
+    <option value="">All categories</option>
+    <option *ngFor="let c of categories" [value]="c.value">{{ c.label }}</option>
   </select>
 
   <select class="filter-sel" [(ngModel)]="filters.location" (change)="search()">
-    <option value="">All Locations</option>
+    <option value="">All locations</option>
     <option *ngFor="let loc of uniqueLocations">{{ loc }}</option>
   </select>
 
@@ -80,7 +60,7 @@
         <div class="item-title">{{ item.title }}</div>
         <div class="item-desc">{{ item.description }}</div>
         <div class="item-footer">
-          <span class="meta-chip" *ngIf="item.category"><i class="fas fa-tag"></i>{{ item.category }}</span>
+          <span class="meta-chip" *ngIf="item.category"><i class="fas fa-tag"></i>{{ categoryLabel(item.category) }}</span>
           <span class="meta-chip" *ngIf="item.location"><i class="fas fa-map-marker-alt"></i>{{ item.location }}</span>
           <span class="meta-chip" *ngIf="item.date"><i class="fas fa-calendar"></i>{{ item.date | date:'mediumDate' }}</span>
         </div>
@@ -89,10 +69,18 @@
     </div>
 
     <!-- Empty -->
-    <div class="empty-state" *ngIf="filteredItems.length === 0 && !loading">
+    <div class="empty-state" *ngIf="loadFailed">
+      <i class="fas fa-plug-circle-xmark"></i>
+      <h3>Could not load the reports</h3>
+      <p>Check your internet connection and try again.</p>
+      <button type="button" class="btn-retry" (click)="getAllItem()"><i class="fas fa-rotate-right"></i> Try again</button>
+    </div>
+
+    <div class="empty-state" *ngIf="filteredItems.length === 0 && !loading && !loadFailed">
       <i class="fas fa-search"></i>
       <h3>No items found</h3>
-      <p>Try adjusting your search or filters</p>
+      <p>Try different words, or clear the filters.</p>
+      <button type="button" class="btn-retry" *ngIf="hasFilters" (click)="clearFilters()"><i class="fas fa-filter-circle-xmark"></i> Clear filters</button>
     </div>
   </ng-container>
 </div>

@@ -11,16 +11,20 @@ import { Profile } from './profile/profile';
 import { Matches } from './matches/matches';
 import { Messages } from './messages/messages';
 
+const name = (page: string) => `${page} | Lost & Found BUBT`;
+
 export const routes: Routes = [
   { path: '',                          redirectTo: 'login', pathMatch: 'full' },
-  { path: 'login',                     component: Login },
-  { path: 'dashbord',                  component: Dashbord,        canActivate: [authGuard] },
-  { path: 'lost',                      component: Lost,             canActivate: [authGuard] },
-  { path: 'found',                     component: Found,            canActivate: [authGuard] },
-  { path: 'reports',                   component: Reports,          canActivate: [authGuard] },
-  { path: 'matches',                   component: Matches,          canActivate: [authGuard] },
-  { path: 'messages',                  component: Messages,         canActivate: [authGuard] },
-  { path: 'productDetails/:type/:id',  component: ProductDetails,   canActivate: [authGuard] },
-  { path: 'profile',                   component: Profile,          canActivate: [authGuard] },
-  { path: '**',                        component: Notfound },
+  { path: 'login',                     component: Login,          title: 'Lost & Found BUBT | Find what you lost' },
+  { path: 'dashbord',                  component: Dashbord,       canActivate: [authGuard], title: name('Dashboard') },
+  { path: 'lost',                      component: Lost,           canActivate: [authGuard], title: name('Report a lost item') },
+  { path: 'lost/edit/:id',             component: Lost,           canActivate: [authGuard], title: name('Edit lost report') },
+  { path: 'found',                     component: Found,          canActivate: [authGuard], title: name('Report a found item') },
+  { path: 'found/edit/:id',            component: Found,          canActivate: [authGuard], title: name('Edit found report') },
+  { path: 'reports',                   component: Reports,        canActivate: [authGuard], title: name('Browse items') },
+  { path: 'matches',                   component: Matches,        canActivate: [authGuard], title: name('Match results') },
+  { path: 'messages',                  component: Messages,       canActivate: [authGuard], title: name('Messages') },
+  { path: 'productDetails/:type/:id',  component: ProductDetails, canActivate: [authGuard], title: name('Item details') },
+  { path: 'profile',                   component: Profile,        canActivate: [authGuard], title: name('My profile') },
+  { path: '**',                        component: Notfound,       title: name('Page not found') },
 ];

@@ -1,5 +1,6 @@
-import { Component, inject } from '@angular/core';
-import { Router, RouterModule } from '@angular/router';
+import { Component } from '@angular/core';
+import { RouterModule } from '@angular/router';
+import { session } from '../session';
 
 @Component({
   selector: 'app-notfound',
@@ -8,5 +9,5 @@ import { Router, RouterModule } from '@angular/router';
   styleUrl: './notfound.css',
 })
 export class Notfound {
-  
+  readonly signedIn = session.isLoggedIn();
 }

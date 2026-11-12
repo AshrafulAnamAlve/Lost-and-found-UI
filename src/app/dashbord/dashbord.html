@@ -1,8 +1,8 @@
 <app-navbar></app-navbar>
 
 <div class="dash-hero">
-  <h1>Welcome back, {{ username || 'there' }}! 👋</h1>
-  <p>Here's what's happening in your Lost &amp; Found community today.</p>
+  <h1>Welcome back{{ username ? ', ' + username : '' }}</h1>
+  <p>Here is what is happening in the Lost &amp; Found community today.</p>
 </div>
 
 <!-- Stats -->
@@ -43,17 +43,21 @@
     </div>
     <div *ngIf="loadingMatches" class="spinner"></div>
     <ng-container *ngIf="!loadingMatches">
-      <div *ngFor="let m of aiMatches" class="match-row" [routerLink]="['/productDetails','found',m.id]">
+      <div *ngFor="let t of topMatches" class="match-row" [routerLink]="matchLink(t)">
         <div class="m-img">
-          <img *ngIf="m.imageUrl" [src]="resolveImg(m.imageUrl)" alt="" (error)="$event.target.style.display='none'">
-          <i *ngIf="!m.imageUrl" class="fas fa-image"></i>
+          <img *ngIf="t.m.imageUrl" [src]="resolveImg(t.m.imageUrl)" alt="" (error)="$any($event.target).style.display='none'">
+          <i *ngIf="!t.m.imageUrl" class="fas fa-image"></i>
         </div>
-        <div class="m-info"><h4>{{ m.itemName || 'Found Item' }}</h4><p>{{ m.location }} {{ m.category ? '• ' + m.category : '' }}</p></div>
-        <span class="m-pct">{{ m.matchPercent }}%</span>
+        <div class="m-info">
+          <h4>{{ t.m.itemName }}</h4>
+          <p>Matches your {{ t.myType }} "{{ t.myItemName }}" · {{ t.m.location }}</p>
+        </div>
+        <span class="m-pct" [ngClass]="'conf-' + confidenceKey(t.m)">{{ t.m.matchPercent }}%</span>
       </div>
-      <div *ngIf="aiMatches.length === 0" class="empty-panel">
+      <a *ngIf="topMatches.length > 0" class="panel-more" routerLink="/matches">See all matches <i class="fas fa-arrow-right"></i></a>
+      <div *ngIf="topMatches.length === 0" class="empty-panel">
         <i class="fas fa-robot"></i>
-        <p>Report a lost item to see AI matches here</p>
+        <p>No matches yet. Report a lost or found item and matches will appear here.</p>
       </div>
     </ng-container>
   </div>
@@ -71,12 +75,12 @@
         <span>{{ item.itemName }}</span>
         <div style="display:flex;align-items:center;gap:.5rem">
           <span class="r-badge" [class.lost]="item.type==='lost'" [class.found]="item.type==='found'">{{ item.type }}</span>
-          <span style="font-size:.72rem;color:var(--muted)">{{ (item.dateLost || item.dateFound) | date:'MMM d' }}</span>
+          <span class="r-date">{{ (item.dateLost || item.dateFound) | date:'MMM d' }}</span>
         </div>
       </div>
       <div *ngIf="recentItems.length === 0" class="empty-panel">
-        <i class="fas fa-inbox"></i>
-        <p>No activity yet</p>
+        <i class="fas" [class.fa-inbox]="!loadFailed" [class.fa-plug-circle-xmark]="loadFailed"></i>
+        <p>{{ loadFailed ? 'Could not load recent reports. Check your connection and refresh the page.' : 'No reports yet' }}</p>
       </div>
     </ng-container>
   </div>

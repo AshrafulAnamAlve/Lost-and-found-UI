@@ -1,15 +1,12 @@
 import { inject } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CanActivateFn, Router } from '@angular/router';
+import { session } from './session';
 
-export const authGuard: CanActivateFn = (route, state) => {
-  const router = inject(Router);
-  const snackBar = inject(MatSnackBar)
-  const token = localStorage.getItem("isLoggedin");
-  if(!token){
-    snackBar.open("Please Login", "Ok");
-   router.navigateByUrl("/login")
-   return false;
-  }
-  return true;
+/** Pages behind sign-in. Remembers where the visitor was going, so sign-in can take them there. */
+export const authGuard: CanActivateFn = (_route, state) => {
+  if (session.isLoggedIn()) return true;
+
+  inject(MatSnackBar).open('Please sign in to continue.', 'OK', { duration: 4000, verticalPosition: 'top' });
+  return inject(Router).createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
 };

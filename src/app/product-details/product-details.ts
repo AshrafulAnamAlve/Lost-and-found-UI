@@ -1,15 +1,19 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ChangeDetectorRef, Component, HostListener, inject, OnInit } from '@angular/core';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { FormsModule } from '@angular/forms';
 import { API_BASE as API, resolveImageUrl } from '../api';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ResolveItem } from '../resolve-item/resolve-item';
+import { Navbar } from '../navbar/navbar';
+import { MatchService } from '../match.service';
+import { apiErrorMessage } from '../auth.interceptor';
+import { categoryLabel, confidenceKey } from '../categories';
+import { session } from '../session';
 
 @Component({
   selector: 'app-product-details',
-  imports: [CommonModule, FormsModule, ResolveItem],
+  imports: [CommonModule, RouterModule, ResolveItem, Navbar],
   templateUrl: './product-details.html',
   styleUrl: './product-details.css',
 })
@@ -18,23 +22,28 @@ export class ProductDetails implements OnInit {
   itemType:       string = '';
   matches:        any[]  = [];
   matchesLoading         = true;
-  selectedMatch:  any    = null; // opened in side panel
-  contactMessage         = '';
-  msgSent                = false;
+  selectedMatch:  any    = null; // opened in the side dialog
+  notFound               = false;
+  deleting               = false;
 
   http  = inject(HttpClient);
   route = inject(ActivatedRoute);
   cdr   = inject(ChangeDetectorRef);
-  myId  = Number(localStorage.getItem('userid') || 0);
+  router = inject(Router);
   snackBar = inject(MatSnackBar);
-  constructor(private router: Router) {}
+  matchSvc = inject(MatchService);
+  myId  = session.userId();
+  categoryLabel = categoryLabel;
+  confidenceKey = confidenceKey;
 
   // ── closing this report off ─────────────────────────────────────────────
   showResolve = false;
 
-  /** Only the person who filed the report can close it — the API enforces this too. */
+  /** Only the person who filed the report can change it — the API enforces this too. */
   get isMine(): boolean { return !!this.item && this.item.userId === this.myId; }
   get isResolved(): boolean { return this.item?.status === 'resolved'; }
+  get reward(): string { return (this.item?.reward ?? this.item?.Reward ?? '').trim(); }
+  get otherKind(): 'lost' | 'found' { return this.itemType === 'lost' ? 'found' : 'lost'; }
 
   onResolved(result: any) {
     this.showResolve = false;
@@ -46,25 +55,45 @@ export class ProductDetails implements OnInit {
       resolvedWithItemId: result?.resolvedWithItemId ?? null,
       resolvedNote: result?.resolvedNote ?? null,
     });
+    this.matchSvc.removeGroup(this.item.id, this.item.type);
     this.cdr.detectChanges();
   }
 
   reopen() {
-    this.http.post<any>(`${API}/Reopen`, {
-      type: this.item.type,
-      id: this.item.id,
-      userId: this.myId,
-    }).subscribe({
+    this.http.post<any>(`${API}/Reopen`, { type: this.item.type, id: this.item.id }).subscribe({
       next: () => {
         Object.assign(this.item, { status: 'open', resolvedAt: null, resolvedWithUserId: null, resolvedWithItemId: null, resolvedNote: null });
-        this.snackBar.open('Report reopened — it is back in matching', 'Ok', { duration: 3500, verticalPosition: 'top' });
+        this.snackBar.open('Report reopened. It is back in matching.', 'OK', { duration: 3500, verticalPosition: 'top' });
         this.cdr.detectChanges();
       },
-      error: (err) => this.snackBar.open(err?.error?.message || 'Could not reopen this report', 'Ok', { duration: 4000, verticalPosition: 'top' }),
+      error: (err) => this.snackBar.open(apiErrorMessage(err, 'Could not reopen this report.'), 'OK',
+        { duration: 5000, verticalPosition: 'top', panelClass: 'snack-error' }),
     });
   }
 
-  // Open the in-app chat with a user (item owner or a match owner).
+  editItem() {
+    this.router.navigate([`/${this.item.type}/edit`, this.item.id]);
+  }
+
+  deleteItem() {
+    if (this.deleting) return;
+    if (!confirm(`Delete "${this.item.itemName}"? This cannot be undone.`)) return;
+    this.deleting = true;
+    this.http.delete(`${API}/Delete/${this.item.type}/${this.item.id}`).subscribe({
+      next: () => {
+        this.matchSvc.removeGroup(this.item.id, this.item.type);
+        this.snackBar.open('Report deleted.', 'OK', { duration: 3500, verticalPosition: 'top' });
+        this.router.navigateByUrl('/profile');
+      },
+      error: (err) => {
+        this.deleting = false;
+        this.snackBar.open(apiErrorMessage(err, 'Could not delete this report.'), 'OK',
+          { duration: 5000, verticalPosition: 'top', panelClass: 'snack-error' });
+      },
+    });
+  }
+
+  /** Opens the in-app chat with a user (the reporter of this item, or of a match). */
   chatWith(userId: number, name: string, itemId: number, itemType: string, itemName: string) {
     if (!userId) return;
     this.router.navigate(['/messages'], {
@@ -72,13 +101,20 @@ export class ProductDetails implements OnInit {
     });
   }
 
+  /** A mailto link with a subject that says which report this is about. */
+  mailLink(email: string, itemName: string, theirKind: string): string {
+    const subject = encodeURIComponent(`About your ${theirKind} item "${itemName}" on Lost & Found BUBT`);
+    return `mailto:${email}?subject=${subject}`;
+  }
+
   ngOnInit() {
     this.route.paramMap.subscribe(params => {
-      const type = params.get('type') ?? '';
+      const type = (params.get('type') ?? '').toLowerCase();
       const id   = params.get('id');
       if (type && id) {
         this.itemType      = type;
         this.item          = null;
+        this.notFound      = false;
         this.matches       = [];
         this.selectedMatch = null;
         this.matchesLoading = true;
@@ -90,13 +126,17 @@ export class ProductDetails implements OnInit {
   loadItem(type: string, id: number) {
     this.http.get<any>(`${API}/GetItemById/${type}/${id}`).subscribe({
       next: res => {
-        res.image = this.resolveImg(res.imageUrl, type);
+        res.image = resolveImageUrl(res.imageUrl);
         res.type  = type;
         this.item = res;
         this.cdr.detectChanges();
         this.loadMatches(type, id);
       },
-      error: () => this.router.navigateByUrl('/reports')
+      error: (err) => {
+        if (err?.status === 401) return;   // the interceptor sends them to sign in
+        this.notFound = true;
+        this.cdr.detectChanges();
+      },
     });
   }
 
@@ -109,9 +149,7 @@ export class ProductDetails implements OnInit {
   }
 
   openMatch(m: any) {
-    this.selectedMatch  = m;
-    this.contactMessage = '';
-    this.msgSent        = false;
+    this.selectedMatch = m;
     document.body.style.overflow = 'hidden';
   }
 
@@ -120,32 +158,27 @@ export class ProductDetails implements OnInit {
     document.body.style.overflow = '';
   }
 
-  // Navigate to the matched item's own detail page
+  @HostListener('document:keydown.escape')
+  onEscape() { if (this.selectedMatch) this.closeMatch(); }
+
+  /** Opens the matched item's own page. */
   goToMatchPage() {
     if (!this.selectedMatch) return;
-    const oppType = this.itemType === 'lost' ? 'found' : 'lost';
-    this.router.navigate(['/productDetails', oppType, this.selectedMatch.id]);
+    this.router.navigate(['/productDetails', this.otherKind, this.selectedMatch.id]);
     this.closeMatch();
   }
 
-  sendContact() {
-    if (!this.contactMessage.trim()) return;
-    // Opens mail client pre-filled
-    const to      = this.selectedMatch?.email ?? '';
-    const subject = encodeURIComponent(`Regarding your ${this.itemType === 'lost' ? 'found' : 'lost'} item: ${this.selectedMatch?.itemName}`);
-    const body    = encodeURIComponent(this.contactMessage);
-    window.open(`mailto:${to}?subject=${subject}&body=${body}`, '_blank');
-    this.msgSent = true;
+  pctClass(m: any) { return { strong: 'high', possible: 'med', weak: 'low' }[confidenceKey(m)]; }
+
+  confLabel(m: any) { return { strong: 'Strong match', possible: 'Possible match', weak: 'Weak match' }[confidenceKey(m)]; }
+
+  reasonIcon(status: string): string {
+    if (status === 'match')   return 'fa-circle-check';
+    if (status === 'partial') return 'fa-circle-half-stroke';
+    return 'fa-circle-xmark';
   }
 
-  callContact() {
-    const phone = this.selectedMatch?.phoneNumber;
-    if (phone) window.open(`tel:${phone}`, '_self');
-  }
-
-  pctClass(p: number) { return p >= 65 ? 'high' : p >= 35 ? 'med' : 'low'; }
-
-  resolveImg(raw: string | null | undefined, type?: string): string {
+  resolveImg(raw: string | null | undefined): string {
     return resolveImageUrl(raw);
   }
 
@@ -153,6 +186,8 @@ export class ProductDetails implements OnInit {
 
   goBack() {
     const ref = this.route.snapshot.queryParamMap.get('ref');
-    this.router.navigateByUrl(ref === 'profile' ? '/profile' : '/reports');
+    if (ref === 'profile') { this.router.navigateByUrl('/profile'); return; }
+    if (window.history.length > 1) { window.history.back(); return; }
+    this.router.navigateByUrl('/reports');
   }
 }

@@ -1,5 +1,31 @@
 import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 
+/** The rules a new password has to satisfy. Each one lights up green as it is met. */
+export const PASSWORD_RULES: { label: string; test: (v: string) => boolean }[] = [
+  { label: 'At least 8 characters',        test: (v) => v.length >= 8 },
+  { label: 'One uppercase letter (A-Z)',   test: (v) => /[A-Z]/.test(v) },
+  { label: 'One lowercase letter (a-z)',   test: (v) => /[a-z]/.test(v) },
+  { label: 'One number (0-9)',             test: (v) => /[0-9]/.test(v) },
+  { label: 'One symbol (!@#$...)',         test: (v) => /[^A-Za-z0-9]/.test(v) },
+];
+
+/** A new password must pass every rule above. Signing in is deliberately not checked against them. */
+export function strongPassword(control: AbstractControl): ValidationErrors | null {
+  const value: string = control.value || '';
+  if (!value) return { required: true };
+  return PASSWORD_RULES.every((r) => r.test(value)) ? null : { weakPassword: true };
+}
+
+/** A "confirm" box must equal the named sibling control. */
+export function matchesField(other: string): ValidatorFn {
+  return (control) => {
+    const value = control.value || '';
+    if (!value) return null;
+    const target = control.parent?.get(other)?.value || '';
+    return value === target ? null : { mismatch: true };
+  };
+}
+
 /**
  * Shared form validation for the whole app.
  *

@@ -8,7 +8,7 @@
 
     <div class="conv-empty" *ngIf="conversations().length === 0">
       <i class="fas fa-inbox"></i>
-      <p>No conversations yet.<br>Start chatting from a match!</p>
+      <p>No conversations yet.<br>Open a match and choose "Send a message".</p>
     </div>
 
     <div class="conv-item" *ngFor="let c of conversations()"
@@ -45,7 +45,7 @@
     <div class="thread-body" #scrollBox>
       <div class="thread-empty" *ngIf="messages().length === 0">
         <i class="fas fa-comment-dots"></i>
-        <p>Say hello 👋</p>
+        <p>No messages yet. Say hello.</p>
       </div>
       <div *ngFor="let m of messages()" class="bubble-row" [class.mine]="m.senderId === myId">
         <div class="bubble" [class.mine]="m.senderId === myId">
@@ -56,7 +56,7 @@
     </div>
 
     <form class="thread-input" (ngSubmit)="send()">
-      <input [(ngModel)]="draft" name="draft" placeholder="Type a message…" autocomplete="off">
+      <input [(ngModel)]="draft" name="draft" placeholder="Type a message..." autocomplete="off" maxlength="2000" aria-label="Message">
       <button type="submit" [disabled]="!draft.trim()" aria-label="Send">
         <i class="fas fa-paper-plane"></i>
       </button>

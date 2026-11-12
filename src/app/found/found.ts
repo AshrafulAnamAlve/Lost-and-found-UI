@@ -1,137 +1,47 @@
-import { Component, ElementRef, inject, OnInit, ViewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { Sidenav } from '../sidenav/sidenav';
+import { Component } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import {
-  bdPhone, brandName, colorName, describeError, looksContactable, meaningfulText,
-  optional, realisticDate, strictEmail,
+  bdPhone, brandName, colorName, meaningfulText, optional, realisticDate, strictEmail,
 } from '../validators';
-import { HttpClient } from '@angular/common/http';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { Router, RouterModule } from '@angular/router';
-import { MatchService } from '../match.service';
-import { API_ORIGIN } from '../api';
-
-const API = `${API_ORIGIN}/api/LostAndFound`;
+import { Navbar } from '../navbar/navbar';
+import { ReportForm } from '../report-form';
+import { localToday } from '../categories';
 
 @Component({
   selector: 'app-found',
-  imports: [Sidenav, CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [Navbar, CommonModule, ReactiveFormsModule, RouterModule],
   templateUrl: './found.html',
   styleUrl: './found.css',
 })
-export class Found implements OnInit {
-  @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+export class Found extends ReportForm {
+  readonly kind = 'found' as const;
+  protected readonly dateKey = 'dateFound' as const;
+  protected override photoRequired = true;
 
-  http     = inject(HttpClient);
-  snackBar = inject(MatSnackBar);
-  router    = inject(Router);
-  matchSvc  = inject(MatchService);
-
-  previews:      string[] = [];
-  selectedFiles: File[]   = [];
-  isSubmitting          = false;
-
-  // AI match result panel — matched LOST items for the found item
-  aiMatches:   any[] = [];
-  showMatches       = false;
-
-  // Image classifier state for the photo section. `available: false` means the
-  // classifier is off or unreachable, in which case nothing is shown at all.
-  isClassifying = false;
-  detection: {
-    label: string | null;
-    confidence: number;
-    known: boolean;
-    category: string | null;
-    // Categories the photo does not contradict, straight from the API - the
-    // rule lives in ItemClassificationService so there is only one copy of it.
-    acceptable: string[];
-    available: boolean;
-  } | null = null;
-
-  // Set when the category dropdown was filled from the detection, so the banner
-  // can say so instead of silently changing a field the user is looking at.
-  categoryAutoFilled = false;
-
-  foundforum: FormGroup = new FormGroup({
+  form: FormGroup = new FormGroup({
     itemName:    new FormControl('', [Validators.required, meaningfulText(3, 60)]),
     type:        new FormControl('found'),
     category:    new FormControl('', Validators.required),
     location:    new FormControl('', [Validators.required, meaningfulText(3, 100)]),
     description: new FormControl('', [Validators.required, meaningfulText(15, 500, 3)]),
-    dateFound:   new FormControl(new Date().toISOString().split('T')[0], [Validators.required, realisticDate()]),
+    dateFound:   new FormControl(localToday(), [Validators.required, realisticDate()]),
     timeLost:    new FormControl(''),
     brand:       new FormControl('', optional(brandName)),
     color:       new FormControl('', optional(colorName)),
 
-    // Contact details are never typed here — loadProfile() copies them from the
-    // signed-in user's profile. They stay on the form so the request body the API
-    // receives is exactly what it was before.
+    // Contact details come from the profile - see Lost.
     userName:    new FormControl('', [Validators.required, meaningfulText(2, 60)]),
     email:       new FormControl('', [Validators.required, strictEmail]),
     phoneNumber: new FormControl('', [Validators.required, bdPhone]),
     altContact:  new FormControl('', optional(bdPhone)),
-    userid:      new FormControl(parseInt(localStorage.getItem('userid') || '0')),
 
-    // What the image classifier saw, sent with the item so the first match pass
-    // can use it — the photo itself only uploads after this post. Kept separate
-    // from `category` above: that is the user's answer, this is the model's.
     detectedCategory:   new FormControl<string | null>(null),
     detectedConfidence: new FormControl<number | null>(null),
   });
 
-  // ── contact details, taken from the profile instead of retyped ─────────────
-  profileLoaded = false;
-  profileFailed = false;
-  contact = { userName: '', email: '', phoneNumber: '', altContact: '' };
-
-  /** True once we have enough from the profile for an owner to reach this finder. */
-  get contactReady(): boolean {
-    return !!this.contact.userName && !!this.contact.email && looksContactable(this.contact.phoneNumber);
-  }
-
-  ngOnInit(): void {
-    this.loadProfile();
-  }
-
-  /** Copies name, email and phone from the signed-in user's profile onto the form. */
-  private loadProfile() {
-    const id = localStorage.getItem('userid');
-    if (!id) { this.profileLoaded = true; this.profileFailed = true; return; }
-
-    this.http.get<any>(`${API}/getUser/${id}`).subscribe({
-      next: (user) => {
-        this.contact = {
-          userName:    `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim(),
-          email:       user?.email ?? '',
-          phoneNumber: user?.phone ?? '',
-          altContact:  user?.secondaryPhone ?? '',
-        };
-        this.foundforum.patchValue(this.contact);
-        this.profileLoaded = true;
-      },
-      error: () => { this.profileLoaded = true; this.profileFailed = true; },
-    });
-  }
-
-  /** Distinguishes an unfinished form from a filled-in one that fails the rules. */
-  private invalidMessage(form: FormGroup): string {
-    const onlyMissing = Object.keys(form.controls).every((key) => {
-      const errors = form.get(key)?.errors;
-      return !errors || Object.keys(errors).every((e) => e === 'required');
-    });
-    return onlyMissing
-      ? 'Please fill all required fields'
-      : 'Some fields still have invalid data — check the messages in red';
-  }
-
-  /** The message for whatever rule a field is currently failing, or null. */
-  err(control: string): string | null {
-    return describeError(this.foundforum.get(control), Found.LABELS[control] ?? control);
-  }
-
-  private static readonly LABELS: Record<string, string> = {
+  protected readonly labels: Record<string, string> = {
     itemName:    'Item name',
     category:    'Category',
     location:    'Location',
@@ -140,233 +50,4 @@ export class Found implements OnInit {
     brand:       'Brand',
     color:       'Colour',
   };
-
-  foundSubmit() {
-    if (!this.contactReady) {
-      this.snackBar.open(
-        'Your profile has no contact details yet — add them on your profile first',
-        'Ok', { duration: 4000, verticalPosition: 'top' });
-      return;
-    }
-    if (this.foundforum.invalid) {
-      this.foundforum.markAllAsTouched();
-      this.snackBar.open(this.invalidMessage(this.foundforum), 'Ok', { duration: 4000, verticalPosition: 'top' });
-      return;
-    }
-    if (this.selectedFiles.length === 0) {
-      this.snackBar.open('Please upload at least one photo of the found item', 'Ok', { duration: 3000, verticalPosition: 'top' });
-      return;
-    }
-
-    this.isSubmitting = true;
-
-    this.http.post<any>(`${API}/PostFound`, this.foundforum.value).subscribe({
-      next: (res) => {
-        if (!res?.id) {
-          this.snackBar.open(res?.message || 'Unexpected response', 'Ok', { duration: 3000 });
-          this.isSubmitting = false;
-          return;
-        }
-
-        // ✅ suggestedMatches = LOST items that match this found item
-        const matches: any[] = res.suggestedMatches ?? [];
-        if (matches.length > 0) {
-          this.aiMatches   = matches;
-          this.matchSvc.addMatches(res.id, this.foundforum.value.itemName, 'found', matches);
-          this.showMatches = true;
-          this.snackBar.open(
-            `✅ Reported! Found ${matches.length} possible owner${matches.length > 1 ? 's' : ''} — please contact them!`,
-            'View', { duration: 6000 }
-          );
-        } else {
-          this.snackBar.open('Thank you! We will notify users if a match is found.', 'Ok', { duration: 4000 });
-        }
-
-        // Always upload the image
-        this.uploadImage('found', res.id);
-      },
-      error: (err) => {
-        const msg = err?.error?.message || 'Error reporting found item';
-        this.snackBar.open(msg, 'Ok', { duration: 4000, verticalPosition: 'top' });
-        this.isSubmitting = false;
-      },
-    });
-  }
-
-  uploadImage(type: string, id: number) {
-    const fd = new FormData();
-    fd.append('image', this.selectedFiles[0], this.selectedFiles[0].name);
-    this.http.post<any>(`${API}/UploadImage/${type}/${id}`, fd).subscribe({
-      next:  () => { this.isSubmitting = false; this.resetForm(); },
-      error: () => { this.isSubmitting = false; this.resetForm(); },
-    });
-  }
-
-  resetForm() {
-    this.foundforum.reset({
-      type:     'found',
-      dateFound: new Date().toISOString().split('T')[0],
-      userid:   parseInt(localStorage.getItem('userid') || '0'),
-      ...this.contact,   // reset must not wipe what the profile supplied
-    });
-    this.previews = []; this.selectedFiles = [];
-    this.isClassifying = false;
-    this.clearDetection();
-  }
-
-  dismissMatches() { this.showMatches = false; }
-
-  // Found item matches = LOST items → navigate to lost detail
-  goToMatch(id: number) { this.router.navigate(['/productDetails', 'lost', id]); }
-
-  resolveImg(raw: string | null): string {
-    if (!raw) return '';
-    if (raw.startsWith('http') || raw.startsWith('data:')) return raw;
-    return `${API_ORIGIN}${raw}`;
-  }
-
-  // ── file helpers ───────────────────────────────────────────────────────────
-  onFileSelect(e: any) { this.handleFiles(e.target.files); if (this.fileInput) this.fileInput.nativeElement.value = ''; }
-  onDrop(e: DragEvent) { e.preventDefault(); if (e.dataTransfer?.files) this.handleFiles(e.dataTransfer.files); }
-  onDragOver(e: DragEvent) { e.preventDefault(); }
-  onDragLeave() {}
-
-  handleFiles(files: FileList) {
-    this.selectedFiles = Array.from(files).filter(f => f.type.startsWith('image')).slice(0, 6);
-    this.previews      = [];
-    this.selectedFiles.forEach(f => {
-      const r = new FileReader();
-      r.onload = () => this.previews.push(r.result as string);
-      r.readAsDataURL(f);
-    });
-
-    // The first photo is the one uploaded with the item, so it is the one we ask
-    // the model about.
-    if (this.selectedFiles.length > 0) this.classifyImage(this.selectedFiles[0]);
-    else this.clearDetection();
-  }
-
-  removeImage(i: number) {
-    this.previews.splice(i, 1);
-    this.selectedFiles.splice(i, 1);
-
-    // Removing the first photo changes which one gets uploaded, so the previous
-    // detection no longer describes it.
-    if (i === 0) {
-      if (this.selectedFiles.length > 0) this.classifyImage(this.selectedFiles[0]);
-      else this.clearDetection();
-    }
-  }
-
-  // ── image classification ───────────────────────────────────────────────────
-
-  // Human wording for the category values the <select> uses.
-  private static readonly CATEGORY_LABELS: Record<string, string> = {
-    wallet:      'Wallet / Purse',
-    phone:       'Mobile Phone',
-    laptop:      'Laptop / Tablet',
-    calculator:  'Calculator',
-    keys:        'Keys',
-    bag:         'Bag / Backpack',
-    documents:   'Documents / ID / Passport',
-    watch:       'Watch',
-    jewelry:     'Jewelry',
-    electronics: 'Other Electronics',
-    clothing:    'Clothing / Shoes',
-    other:       'Other',
-  };
-
-  categoryLabel(value: string | null): string {
-    return (value && Found.CATEGORY_LABELS[value]) || value || '';
-  }
-
-  // True when the model is confident, the user has chosen a category, and the photo
-  // does not support that choice.
-  //
-  // This is the one thing here the user cannot do for themselves. Filling an empty
-  // dropdown only saves a tap they were about to make anyway; catching a photo filed
-  // under the wrong category is a mistake they cannot see, and a mis-filed item is
-  // one the matching engine will struggle to find later.
-  //
-  // Always a warning, never a correction: the user is holding the object and the
-  // model is not, so they are allowed to be right and it is allowed to be wrong.
-  get categoryMismatch(): boolean {
-    const chosen = this.foundforum.value.category;
-    const d = this.detection;
-
-    return !!d && d.known && !!d.category && !!chosen
-        && d.acceptable.length > 0
-        && !d.acceptable.includes(chosen);
-  }
-
-  // Accepts the model's reading. Patching the control does not raise the DOM change
-  // event, so this does not look like the user picking a category by hand.
-  useDetectedCategory() {
-    if (!this.detection?.category) return;
-    this.foundforum.patchValue({ category: this.detection.category });
-    this.categoryAutoFilled = false;
-  }
-
-  // Once the user has picked a category themselves, the banner must stop saying the
-  // form filled it in for them.
-  onCategoryChosen() {
-    this.categoryAutoFilled = false;
-  }
-
-  clearDetection() {
-    this.detection = null;
-    this.categoryAutoFilled = false;
-    this.foundforum.patchValue({ detectedCategory: null, detectedConfidence: null });
-  }
-
-  // Asks the API what the photo shows, then records it on the form.
-  //
-  // Best-effort throughout: any failure clears the detection and leaves the form
-  // untouched, because a classifier being down must never stop someone reporting
-  // an item they found.
-  classifyImage(file: File) {
-    this.isClassifying = true;
-    this.clearDetection();
-
-    const fd = new FormData();
-    fd.append('image', file, file.name);
-
-    this.http.post<any>(`${API}/ClassifyImage`, fd).subscribe({
-      next: (res) => {
-        this.isClassifying = false;
-
-        if (!res?.available) return;   // classifier off or unreachable — stay silent
-
-        this.detection = {
-          label:      res.label ?? null,
-          confidence: res.confidence ?? 0,
-          known:      !!res.known,
-          category:   res.category ?? null,
-          acceptable: res.acceptableCategories ?? [],
-          available:  true,
-        };
-
-        // Only a confident answer is worth recording. Below the threshold the
-        // model is guessing, and the banner asks the user to pick instead.
-        if (res.known && res.category) {
-          this.foundforum.patchValue({
-            detectedCategory:   res.category,
-            detectedConfidence: res.confidence,
-          });
-
-          // Suggest, never override: fill the dropdown only while it is still
-          // empty, and say so in the banner so the user can correct it.
-          if (!this.foundforum.value.category) {
-            this.foundforum.patchValue({ category: res.category });
-            this.categoryAutoFilled = true;
-          }
-        }
-      },
-      error: () => {
-        // Same as unavailable — the photo still uploads, just without a category.
-        this.isClassifying = false;
-        this.clearDetection();
-      },
-    });
-  }
 }

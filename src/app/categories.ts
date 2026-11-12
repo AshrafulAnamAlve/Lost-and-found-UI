@@ -36,3 +36,53 @@ export function itemMatchesCategory(
 
   return (item.itemName || '').toLowerCase().includes(wanted);
 }
+
+/** Every category a report can be filed under, in the order the forms list them. */
+export const ITEM_CATEGORIES: { value: string; label: string }[] = [
+  { value: 'wallet',      label: 'Wallet / Purse' },
+  { value: 'phone',       label: 'Mobile Phone' },
+  { value: 'laptop',      label: 'Laptop / Tablet' },
+  { value: 'calculator',  label: 'Calculator' },
+  { value: 'keys',        label: 'Keys' },
+  { value: 'bag',         label: 'Bag / Backpack' },
+  { value: 'documents',   label: 'Documents / ID / Passport' },
+  { value: 'watch',       label: 'Watch' },
+  { value: 'jewelry',     label: 'Jewelry' },
+  { value: 'electronics', label: 'Other Electronics' },
+  { value: 'clothing',    label: 'Clothing / Shoes' },
+  { value: 'other',       label: 'Other' },
+];
+
+/** "laptop" -> "Laptop / Tablet". Unknown values are shown with a capital letter. */
+export function categoryLabel(value: string | null | undefined): string {
+  const v = (value || '').toLowerCase().trim();
+  if (!v) return '';
+  return ITEM_CATEGORIES.find((c) => c.value === v)?.label ?? v.charAt(0).toUpperCase() + v.slice(1);
+}
+
+/**
+ * Today's date as YYYY-MM-DD in the user's own time zone. `toISOString()` gives the
+ * UTC date, which in Bangladesh (UTC+6) is still yesterday until 6 in the morning.
+ */
+export function localToday(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** Same as localToday() for any date value the API returns. */
+export function toDateInput(value: string | Date | null | undefined): string {
+  if (!value) return localToday();
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return localToday();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** Strong / Possible / Weak, from the API's own label - the one rule every page uses. */
+export function confidenceKey(m: { confidence?: string | null; matchPercent?: number }): 'strong' | 'possible' | 'weak' {
+  const c = (m.confidence || '').toLowerCase();
+  if (c === 'strong' || c === 'possible' || c === 'weak') return c;
+  const p = m.matchPercent || 0;
+  return p >= 72 ? 'strong' : p >= 55 ? 'possible' : 'weak';
+}

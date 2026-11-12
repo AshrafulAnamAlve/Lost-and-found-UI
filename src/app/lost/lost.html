@@ -1,100 +1,85 @@
-<app-sidenav></app-sidenav>
+<app-navbar></app-navbar>
 
 <div class="form-hero">
-  <h1><i class="fas fa-search-minus"></i> Report a Lost Item</h1>
-  <p>Provide as much detail as possible — our AI will instantly search for matches</p>
+  <h1><i class="fas" [class.fa-search-minus]="!isEdit" [class.fa-pen-to-square]="isEdit"></i> {{ isEdit ? 'Edit Lost Report' : 'Report a Lost Item' }}</h1>
+  <p *ngIf="!isEdit">Give as much detail as you can. We will compare it with every found item right away.</p>
+  <p *ngIf="isEdit">Update the details below. Matches are checked again as soon as you save.</p>
 </div>
 
-<!-- ══ AI MATCH PANEL (shown right after submit) ══════════════════════════════ -->
+<!-- ══ MATCHES (shown right after submit) ═══════════════════════════════════ -->
 <div class="ai-match-panel" *ngIf="showMatches">
   <div class="ai-match-panel-inner">
     <div class="ai-panel-header">
       <div class="ai-panel-title">
         <i class="fas fa-robot"></i>
-        AI Found {{ aiMatches.length }} Possible Match{{ aiMatches.length > 1 ? 'es' : '' }}!
+        {{ aiMatches.length }} possible match{{ aiMatches.length > 1 ? 'es' : '' }} found
         <span class="ai-tag">AI</span>
       </div>
-      <button class="ai-panel-close" (click)="dismissMatches()"><i class="fas fa-times"></i></button>
+      <button type="button" class="ai-panel-close" (click)="dismissMatches()" aria-label="Close"><i class="fas fa-times"></i></button>
     </div>
-    <p class="ai-panel-sub">These found items closely match what you reported. Contact the finder to confirm!</p>
+    <p class="ai-panel-sub">These found items look similar to what you reported. Open one to see the details and contact the finder.</p>
     <div class="ai-cards-row">
       <div class="ai-match-card" *ngFor="let m of aiMatches" (click)="goToMatch(m.id)">
         <div class="ai-card-img">
-          <img *ngIf="m.imageUrl" [src]="resolveImg(m.imageUrl)" alt="" (error)="$event.target.style.display='none'">
+          <img *ngIf="m.imageUrl" [src]="resolveImg(m.imageUrl)" alt="" (error)="$any($event.target).style.display='none'">
           <i *ngIf="!m.imageUrl" class="fas fa-image"></i>
         </div>
         <div class="ai-card-body">
-          <h4>{{ m.itemName || 'Found Item' }}</h4>
+          <h4>{{ m.itemName || 'Found item' }}</h4>
           <p class="ai-card-meta"><i class="fas fa-map-marker-alt"></i> {{ m.location }}</p>
-          <p class="ai-card-meta" *ngIf="m.category"><i class="fas fa-tag"></i> {{ m.category }}</p>
+          <p class="ai-card-meta" *ngIf="m.category"><i class="fas fa-tag"></i> {{ categoryLabel(m.category) }}</p>
           <div class="ai-card-footer">
-            <span class="match-pct"
-              [style.background]="(m.matchPercent||0) >= 60 ? 'rgba(22,160,133,.12)' : (m.matchPercent||0) >= 35 ? 'rgba(243,156,18,.12)' : 'rgba(108,117,125,.1)'"
-              [style.color]="(m.matchPercent||0) >= 60 ? 'var(--found)' : (m.matchPercent||0) >= 35 ? 'var(--gold)' : 'var(--muted)'">
-              {{ m.matchPercent }}% match
-            </span>
+            <span class="match-pct" [ngClass]="'conf-' + confidenceKey(m)">{{ m.matchPercent }}% match</span>
             <span class="view-link">View <i class="fas fa-arrow-right"></i></span>
-          </div>
-          <div class="ai-card-contact" *ngIf="m.phoneNumber">
-            <i class="fas fa-phone"></i> {{ m.phoneNumber }}
           </div>
         </div>
       </div>
     </div>
     <div class="ai-panel-actions">
-      <button class="btn-view-all" (click)="router.navigate(['/reports'])">
-        <i class="fas fa-list"></i> Browse All Found Items
+      <button type="button" class="btn-view-all" (click)="router.navigate(['/matches'])">
+        <i class="fas fa-list"></i> See all my matches
       </button>
-      <button class="btn-dismiss" (click)="dismissMatches()">Dismiss</button>
+      <button type="button" class="btn-dismiss" (click)="dismissMatches()">Report another item</button>
     </div>
   </div>
 </div>
 
 <!-- ══ FORM ═════════════════════════════════════════════════════════════════ -->
 <div class="form-container">
-  <form [formGroup]="lostForm">
+  <div class="form-loading" *ngIf="loadingItem"><i class="fas fa-spinner fa-spin"></i> Loading your report...</div>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate [class.is-hidden]="loadingItem">
 
     <div class="form-card">
       <div class="section-title"><i class="fas fa-info-circle"></i> Item Information</div>
       <div class="form-grid">
         <div class="form-group">
-          <label>Item Name *</label>
-          <input type="text" formControlName="itemName" placeholder="e.g. Black Leather Wallet, iPhone 14 Pro">
+          <label for="f-name">Item Name <span class="req">*</span></label>
+          <input id="f-name" type="text" formControlName="itemName" placeholder="e.g. Black leather wallet, iPhone 14 Pro">
           <p class="field-error" *ngIf="err('itemName') as msg">{{ msg }}</p>
         </div>
         <div class="form-group">
-          <label>Category *</label>
-          <select formControlName="category" (change)="onCategoryChosen()">
-            <option value="">Select category</option>
-            <option value="wallet">Wallet / Purse</option>
-            <option value="phone">Mobile Phone</option>
-            <option value="laptop">Laptop / Tablet</option>
-            <option value="calculator">Calculator</option>
-            <option value="keys">Keys</option>
-            <option value="bag">Bag / Backpack</option>
-            <option value="documents">Documents / ID / Passport</option>
-            <option value="watch">Watch</option>
-            <option value="jewelry">Jewelry</option>
-            <option value="electronics">Other Electronics</option>
-            <option value="clothing">Clothing / Shoes</option>
-            <option value="other">Other</option>
+          <label for="f-cat">Category <span class="req">*</span></label>
+          <select id="f-cat" formControlName="category" (change)="onCategoryChosen()">
+            <option value="">Select a category</option>
+            <option *ngFor="let c of categories" [value]="c.value">{{ c.label }}</option>
           </select>
           <p class="field-error" *ngIf="err('category') as msg">{{ msg }}</p>
         </div>
         <div class="form-group">
-          <label>Brand / Model</label>
-          <input type="text" formControlName="brand" placeholder="e.g. Apple, Samsung, Nike">
+          <label for="f-brand">Brand / Model</label>
+          <input id="f-brand" type="text" formControlName="brand" placeholder="e.g. Apple, Samsung, Casio">
           <p class="field-error" *ngIf="err('brand') as msg">{{ msg }}</p>
         </div>
         <div class="form-group">
-          <label>Primary Color *</label>
-          <input type="text" formControlName="color" placeholder="e.g. Black, Navy Blue">
+          <label for="f-color">Main Colour <span class="req">*</span></label>
+          <input id="f-color" type="text" formControlName="color" placeholder="e.g. Black, Navy blue">
           <p class="field-error" *ngIf="err('color') as msg">{{ msg }}</p>
         </div>
         <div class="form-group full-width">
-          <label>Detailed Description *</label>
-          <textarea formControlName="description" rows="3"
-            placeholder="Describe your item — unique marks, serial numbers, scratches, stickers, etc."></textarea>
+          <label for="f-desc">Detailed Description <span class="req">*</span></label>
+          <textarea id="f-desc" formControlName="description" rows="3"
+            placeholder="Describe the item: marks, scratches, stickers, serial number, what was inside, etc."></textarea>
           <p class="field-error" *ngIf="err('description') as msg">{{ msg }}</p>
         </div>
       </div>
@@ -104,99 +89,99 @@
       <div class="section-title"><i class="fas fa-map-marker-alt"></i> Location &amp; Time</div>
       <div class="form-grid">
         <div class="form-group">
-          <label>Last Seen Location *</label>
-          <input type="text" formControlName="location" placeholder="e.g. BUBT Cafeteria, Library, Room 301">
+          <label for="f-loc">Last Seen Location <span class="req">*</span></label>
+          <input id="f-loc" type="text" formControlName="location" placeholder="e.g. BUBT Cafeteria, Library, Room 301">
           <p class="field-error" *ngIf="err('location') as msg">{{ msg }}</p>
         </div>
         <div class="form-group">
-          <label>Date Lost *</label>
-          <input type="date" formControlName="dateLost">
+          <label for="f-date">Date Lost <span class="req">*</span></label>
+          <input id="f-date" type="date" formControlName="dateLost">
           <p class="field-error" *ngIf="err('dateLost') as msg">{{ msg }}</p>
         </div>
         <div class="form-group">
-          <label>Approximate Time</label>
-          <input type="time" formControlName="timeLost">
+          <label for="f-time">Approximate Time</label>
+          <input id="f-time" type="time" formControlName="timeLost">
         </div>
         <div class="form-group">
-          <label>Reward Offered 🏆</label>
-          <input type="text" formControlName="Reward" placeholder="e.g. 500 BDT or None">
+          <label for="f-reward">Reward Offered</label>
+          <input id="f-reward" type="text" formControlName="Reward" placeholder="e.g. 500 BDT, or leave empty">
           <p class="field-error" *ngIf="err('Reward') as msg">{{ msg }}</p>
         </div>
       </div>
     </div>
 
     <div class="form-card">
-      <div class="section-title"><i class="fas fa-camera"></i> Item Photo</div>
-      <div class="upload-zone"
-           (click)="onUploadClick()"
-           (dragover)="onDragOver($event)"
-           (dragleave)="onDragLeave($event)"
-           (drop)="onDrop($event)">
-        <i class="fas fa-cloud-upload-alt"></i>
-        <p>Click to upload or drag &amp; drop</p>
-        <small>JPG, PNG up to 10 MB</small>
-        <input #fileInput type="file" accept="image/*" multiple hidden (change)="onFilesSelected($event)">
-      </div>
-      <div class="preview-grid" #preview></div>
+      <div class="section-title"><i class="fas fa-camera"></i> Item Photo <span class="section-optional">(optional, but it helps)</span></div>
 
-      <!-- Image classifier result. Hidden entirely when the classifier is off or
-           unreachable, so the form looks exactly as it did before when it is. -->
+      <div class="photo-current" *ngIf="previewUrl || existingImage">
+        <img [src]="previewUrl || existingImage" alt="Photo of the item">
+        <div class="photo-current-info">
+          <strong>{{ previewUrl ? (isEdit ? 'New photo' : 'Selected photo') : 'Current photo' }}</strong>
+          <span *ngIf="selectedFile">{{ selectedFile.name }}</span>
+          <button type="button" class="photo-remove" *ngIf="previewUrl" (click)="removePhoto()">
+            <i class="fas fa-trash-alt"></i> Remove
+          </button>
+        </div>
+      </div>
+
+      <label class="upload-zone" [class.dragover]="dragging"
+             (dragover)="onDragOver($event)" (dragleave)="onDragLeave()" (drop)="onDrop($event)">
+        <i class="fas fa-cloud-upload-alt"></i>
+        <p>{{ (previewUrl || existingImage) ? 'Choose a different photo' : 'Click to choose a photo, or drag one here' }}</p>
+        <small>One photo · JPG, PNG, WebP or GIF · up to 10 MB</small>
+        <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden (change)="onFilePicked($event)">
+      </label>
+
+      <!-- What the image model saw. Hidden when the model is off or unreachable. -->
       <div class="detect-box detect-busy" *ngIf="isClassifying">
         <i class="fas fa-spinner fa-spin"></i>
-        <span>Checking the photo…</span>
+        <span>Checking the photo...</span>
       </div>
 
       <ng-container *ngIf="!isClassifying && detection">
-        <!-- Confident: state what it saw, and whether we filled the dropdown. -->
         <div class="detect-box detect-known" *ngIf="detection.known && !categoryMismatch">
           <i class="fas fa-check-circle"></i>
           <span>
             <span class="ai-tag">AI</span>
-            Looks like a <strong>{{ detection.label }}</strong>
+            This looks like a <strong>{{ detection.label }}</strong>
             <span class="detect-conf">{{ (detection.confidence * 100) | number:'1.0-0' }}% sure</span>
             <em *ngIf="categoryAutoFilled">
-              — category set to “{{ categoryLabel(detection.category) }}”. Change it above if that is wrong.
+              We set the category to "{{ categoryLabel(detection.category) }}". Change it above if that is wrong.
             </em>
           </span>
         </div>
 
-        <!-- Confident, but it disagrees with the category on the form. Says what it
-             saw, what is selected, and offers the fix in one click - while making clear
-             the user may keep their own answer. -->
         <div class="detect-box detect-mismatch" *ngIf="detection.known && categoryMismatch">
           <i class="fas fa-exclamation-triangle"></i>
           <span>
             <span class="ai-tag">AI</span>
             This photo looks like a <strong>{{ detection.label }}</strong>
             <span class="detect-conf">{{ (detection.confidence * 100) | number:'1.0-0' }}% sure</span>,
-            but the category says <strong>{{ categoryLabel(lostForm.value.category) }}</strong>.
+            but the category is <strong>{{ categoryLabel(form.value.category) }}</strong>.
             <button type="button" class="detect-fix" (click)="useDetectedCategory()">
               Change to {{ categoryLabel(detection.category) }}
             </button>
-            <em>Keep yours if the photo shows something else.</em>
+            <em>Keep your choice if the photo shows something else.</em>
           </span>
         </div>
 
-        <!-- Unsure: never guess on the user's behalf, just ask. -->
         <div class="detect-box detect-unsure" *ngIf="!detection.known">
           <i class="fas fa-question-circle"></i>
           <span>
             <span class="ai-tag">AI</span>
-            Not sure what this is<span *ngIf="detection.label"> (closest guess {{ detection.label }})</span><span
-              *ngIf="detection.confidence">, only {{ (detection.confidence * 100) | number:'1.0-0' }}% confident</span>.
-            Please pick the <strong>Category</strong> yourself above.
+            We could not tell what this is<span *ngIf="detection.label"> (closest guess: {{ detection.label }}, {{ (detection.confidence * 100) | number:'1.0-0' }}%)</span>.
+            Please choose the <strong>Category</strong> yourself.
           </span>
         </div>
       </ng-container>
     </div>
 
-    <!-- Contact details come from the signed-in user's profile — never retyped here,
-         so one person cannot end up in the database under three phone numbers. -->
+    <!-- Contact details come from the signed-in user's profile. -->
     <div class="form-card">
       <div class="section-title"><i class="fas fa-address-card"></i> Contact Information</div>
 
       <div class="contact-loading" *ngIf="!profileLoaded">
-        <i class="fas fa-spinner fa-spin"></i> Loading your contact details…
+        <i class="fas fa-spinner fa-spin"></i> Loading your contact details...
       </div>
 
       <ng-container *ngIf="profileLoaded">
@@ -210,20 +195,19 @@
               <i class="fas fa-phone-alt"></i> {{ contact.altContact }} <span class="contact-tag">alternate</span>
             </div>
           </div>
-          <a class="contact-edit" routerLink="/profile"><i class="fas fa-user-pen"></i> Profile</a>
+          <a class="contact-edit" routerLink="/profile"><i class="fas fa-user-pen"></i> Edit in profile</a>
         </div>
 
         <p class="contact-note" *ngIf="contactReady">
           <i class="fas fa-lock"></i>
-          Taken from your profile — whoever finds your item will use this to reach you.
-          To change it, update your profile.
+          These details come from your profile. Whoever finds your item will use them to reach you.
         </p>
 
         <div class="contact-missing" *ngIf="!contactReady">
           <i class="fas fa-exclamation-triangle"></i>
           <span>
-            <strong>Your profile has no contact details yet.</strong>
-            Nobody could tell you they found your item, so add them before reporting.
+            <strong>Your profile has no phone number yet.</strong>
+            Nobody could reach you about your item, so please add one before reporting.
             <a routerLink="/profile">Go to your profile</a>
           </span>
         </div>
@@ -231,10 +215,11 @@
     </div>
 
     <div class="form-actions">
-      <button type="button" class="btn-submit" [disabled]="isSubmitting || !contactReady" (click)="lostSubmit()">
-        <i class="fas" [class.fa-paper-plane]="!isSubmitting" [class.fa-spinner]="isSubmitting"
-           [class.fa-spin]="isSubmitting"></i>
-        {{ isSubmitting ? 'Submitting…' : 'Submit Lost Report' }}
+      <button type="button" class="btn-cancel" *ngIf="isEdit" (click)="cancelEdit()" [disabled]="isSubmitting">Cancel</button>
+      <button type="submit" class="btn-submit" [disabled]="isSubmitting || !contactReady">
+        <i class="fas" [class.fa-paper-plane]="!isSubmitting && !isEdit" [class.fa-save]="!isSubmitting && isEdit"
+           [class.fa-spinner]="isSubmitting" [class.fa-spin]="isSubmitting"></i>
+        {{ isSubmitting ? 'Saving...' : (isEdit ? 'Save Changes' : 'Submit Lost Report') }}
       </button>
     </div>
 

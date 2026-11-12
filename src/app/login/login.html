@@ -4,22 +4,25 @@
 <!-- Nav -->
 <nav class="hero-nav">
   <div class="hero-logo"><div class="logo-dot"></div>Lost &amp; Found</div>
-  <div class="nav-btns">
-    <button class="btn-nav-outline" (click)="openLogin()">Login</button>
-    <button class="btn-nav-solid" (click)="openSignup()">Sign Up</button>
+  <div class="nav-btns" *ngIf="!signedIn">
+    <button class="btn-nav-outline" (click)="openLogin()">Sign in</button>
+    <button class="btn-nav-solid" (click)="openSignup()">Create account</button>
+  </div>
+  <div class="nav-btns" *ngIf="signedIn">
+    <button class="btn-nav-solid" (click)="goTo('/dashbord')"><i class="fas fa-gauge"></i> Go to dashboard</button>
   </div>
 </nav>
 
 <!-- Hero -->
 <div class="hero-body">
-  <div class="hero-badge"><i class="fas fa-robot"></i> AI-Powered Matching</div>
+  <div class="hero-badge"><i class="fas fa-robot"></i> AI-powered lost and found for BUBT</div>
   <h1 class="hero-title">
     Reunite <span class="hl-red">Lost</span><br>
     Celebrate <span class="hl-green">Found</span>
   </h1>
-  <p class="hero-sub">Report what you lost or found. The AI compares it against every report on the other side — wording, category, colour, location and the photo itself — and shows you the closest matches straight away.</p>
+  <p class="hero-sub">Report what you lost or found on campus. Every new report is compared with the reports already posted, using the description, category, colour, location and photo, and the most likely matches are shown to you right away.</p>
 
-  <p class="float-caption">The four item types our photo model recognises on sight — tap one to see what has been reported, no account needed</p>
+  <p class="float-caption">Our photo model recognises these four item types. Tap one to see what has been reported.</p>
   <div class="float-row">
     <button type="button" class="float-card" *ngFor="let c of categories"
             [class.is-empty]="statsLoaded && !categoryCounts[c.key]"
@@ -38,7 +41,7 @@
     <div class="preview-head">
       <div>
         <h3>{{ previewItems.length }} {{ previewLabel }}</h3>
-        <p>Reported by the community — no account needed to look</p>
+        <p>Reported by the community. Sign in to see contact details.</p>
       </div>
       <button type="button" class="preview-close" (click)="closePreview()" aria-label="Close">
         <i class="fas fa-times"></i>
@@ -70,20 +73,19 @@
     </div>
 
     <p class="preview-more" *ngIf="previewHidden > 0">
-      and {{ previewHidden }} more — <button type="button" class="link-btn" (click)="goTo('/reports?category=' + previewCategory)">browse them all</button>
+      and {{ previewHidden }} more. <button type="button" class="link-btn" (click)="goTo('/reports?category=' + previewCategory)">Browse them all</button>
     </p>
   </section>
 
   <div class="cta-row">
     <button class="btn-cta btn-cta-lost"  (click)="goTo('/lost')"><i class="fas fa-search"></i> Report Lost Item</button>
     <button class="btn-cta btn-cta-found" (click)="goTo('/found')"><i class="fas fa-hand-holding-heart"></i> Report Found Item</button>
-    <button class="btn-cta btn-cta-login" (click)="openLogin()"><i class="fas fa-user"></i> Sign In</button>
+    <button class="btn-cta btn-cta-login" *ngIf="!signedIn" (click)="openLogin()"><i class="fas fa-user"></i> Sign in</button>
   </div>
 </div>
 
 <!-- Stats -->
 <div class="hero-stats">
-  <!-- Live from the database. Hidden rather than guessed if the API is unreachable. -->
   <div class="stat-item" *ngIf="statsLoaded">
     <div class="stat-num"><span>{{ totalItems }}</span></div>
     <div class="stat-label">Items Reported</div>
@@ -93,7 +95,6 @@
     <div class="stat-label">Found Items Listed</div>
   </div>
 
-  <!-- From the image classifier shipped with the API. -->
   <div class="stat-item">
     <div class="stat-num"><span>{{ photoAccuracy }}</span>%</div>
     <div class="stat-label">Photo Recognition Accuracy</div>
@@ -105,134 +106,163 @@
 </div>
 <p class="stats-note">
   <i class="fas fa-circle-check"></i>
-  <span *ngIf="statsLoaded">Counts read live from the platform. </span>
-  Accuracy measured on the image classifier's held-out test set — no estimated figures on this page.
+  <span *ngIf="statsLoaded">Item counts are live. </span>
+  Accuracy is measured on the image model's test set.
 </p>
 
 <!-- Features -->
 <section class="features-section">
-  <h2 class="section-heading">Why Lost &amp; Found BUBT?</h2>
-  <p class="section-sub">Exactly what the system does with your report — nothing more claimed than it does</p>
+  <h2 class="section-heading">Why use Lost &amp; Found BUBT?</h2>
+  <p class="section-sub">How your report is matched, and how your details are kept safe</p>
   <div class="features-grid">
     <div class="feature-card">
       <div class="feat-icon red"><i class="fas fa-brain"></i></div>
-      <h3>Two-Layer Matching</h3>
-      <p>Word-level rules score the obvious overlap, and a sentence-embedding model reads the meaning — so a “notebook computer” can still match a “laptop”.</p>
+      <h3>Smart matching</h3>
+      <p>Reports are compared by meaning, not only by exact words, so a "notebook computer" can still match a "laptop".</p>
     </div>
     <div class="feature-card">
       <div class="feat-icon green"><i class="fas fa-bolt"></i></div>
-      <h3>Matches On Submit</h3>
-      <p>The moment a report is filed it is scored against every item on the other side, and the five strongest candidates come back with the response.</p>
+      <h3>Instant results</h3>
+      <p>As soon as you submit a report, it is checked against every report on the other side and the five closest matches are shown to you.</p>
     </div>
     <div class="feature-card">
       <div class="feat-icon blue"><i class="fas fa-shield-alt"></i></div>
-      <h3>One Profile, One Identity</h3>
-      <p>Contact details are taken from your account, never retyped per report — so nobody posts under a made-up name or an unreachable number.</p>
+      <h3>Verified contact details</h3>
+      <p>Contact details come from your account profile, so every report carries a real name and a phone number that works.</p>
     </div>
     <div class="feature-card">
       <div class="feat-icon gold"><i class="fas fa-camera"></i></div>
-      <h3>The Photo Is Checked</h3>
-      <p>An image classifier names what it sees in your photo, fills in the category for you, and warns you when the picture disagrees with the category you picked.</p>
+      <h3>Photo recognition</h3>
+      <p>Our image model identifies the item in your photo, suggests the right category, and warns you if the photo and the category do not match.</p>
     </div>
   </div>
 </section>
 
 <!-- Footer -->
-<footer class="landing-footer">&copy; 2026 Lost &amp; Found — BUBT. All rights reserved.</footer>
+<footer class="landing-footer">&copy; 2026 Lost &amp; Found BUBT. All rights reserved.</footer>
 
-<!-- Login Modal -->
+<!-- Sign-in -->
 <div class="modal-overlay" *ngIf="showLogin" (click)="closeModal()">
-  <div class="modal-box" (click)="$event.stopPropagation()">
-    <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
-    <p class="modal-title">Welcome Back 👋</p>
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="login-title" (click)="$event.stopPropagation()">
+    <button type="button" class="modal-close" (click)="closeModal()" aria-label="Close"><i class="fas fa-times"></i></button>
+    <p class="modal-title" id="login-title">Welcome back</p>
     <p class="modal-sub">Sign in to your Lost &amp; Found account</p>
-    <form [formGroup]="loginForm">
+
+    <div class="form-alert" *ngIf="loginError" role="alert"><i class="fas fa-circle-exclamation"></i> {{ loginError }}</div>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onLogin()" novalidate>
       <div class="form-group">
-        <label>Email</label>
-        <input type="email" formControlName="email" placeholder="your@email.com">
+        <label for="login-email">Email</label>
+        <input id="login-email" type="email" formControlName="email" placeholder="name@example.com" autocomplete="email">
+        <p class="field-error" *ngIf="loginErr('email') as msg">{{ msg }}</p>
       </div>
       <div class="form-group">
-        <label>Password</label>
-        <input type="password" formControlName="password" placeholder="••••••••">
+        <label for="login-password">Password</label>
+        <div class="pw-field">
+          <input id="login-password" [type]="showLoginPassword ? 'text' : 'password'" formControlName="password"
+                 placeholder="Enter your password" autocomplete="current-password">
+          <button type="button" class="pw-toggle" (click)="showLoginPassword = !showLoginPassword"
+                  [attr.aria-label]="showLoginPassword ? 'Hide password' : 'Show password'">
+            <i class="fas" [class.fa-eye]="!showLoginPassword" [class.fa-eye-slash]="showLoginPassword"></i>
+          </button>
+        </div>
+        <p class="field-error" *ngIf="loginErr('password') as msg">{{ msg }}</p>
       </div>
-      <button type="button" class="btn-modal-submit" (click)="onLogin()">
-        <i class="fas fa-sign-in-alt"></i> Sign In
+      <button type="submit" class="btn-modal-submit" [disabled]="loggingIn">
+        <i class="fas" [class.fa-sign-in-alt]="!loggingIn" [class.fa-spinner]="loggingIn" [class.fa-spin]="loggingIn"></i>
+        {{ loggingIn ? 'Signing in...' : 'Sign in' }}
       </button>
     </form>
-    <p style="text-align:center;margin-top:1rem;font-size:.88rem;color:var(--muted)">
-      Don't have an account? <span style="color:var(--accent);cursor:pointer;font-weight:600" (click)="openSignup()">Sign Up</span>
+    <p class="modal-switch">
+      Don't have an account? <button type="button" class="link-btn" (click)="openSignup()">Create one</button>
     </p>
   </div>
 </div>
 
-<!-- Signup Modal -->
+<!-- Create account -->
 <div class="modal-overlay" *ngIf="showSignup" (click)="closeModal()">
-  <div class="modal-box" (click)="$event.stopPropagation()">
-    <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
-    <p class="modal-title">Create Account 🚀</p>
-    <p class="modal-sub">Join the Lost &amp; Found community today</p>
-    <form [formGroup]="RegisterForm">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="signup-title" (click)="$event.stopPropagation()">
+    <button type="button" class="modal-close" (click)="closeModal()" aria-label="Close"><i class="fas fa-times"></i></button>
+    <p class="modal-title" id="signup-title">Create your account</p>
+    <p class="modal-sub">Join the Lost &amp; Found community at BUBT</p>
+
+    <div class="form-alert" *ngIf="signupError" role="alert"><i class="fas fa-circle-exclamation"></i> {{ signupError }}</div>
+
+    <form [formGroup]="RegisterForm" (ngSubmit)="onRegister()" novalidate>
       <div class="form-row">
         <div class="form-group">
-          <label>First Name</label>
-          <input type="text" formControlName="firstName" placeholder="John">
+          <label for="su-first">First name</label>
+          <input id="su-first" type="text" formControlName="firstName" placeholder="First name" autocomplete="given-name">
           <p class="field-error" *ngIf="err('firstName') as msg">{{ msg }}</p>
         </div>
         <div class="form-group">
-          <label>Last Name</label>
-          <input type="text" formControlName="lastName" placeholder="Doe">
+          <label for="su-last">Last name</label>
+          <input id="su-last" type="text" formControlName="lastName" placeholder="Last name" autocomplete="family-name">
           <p class="field-error" *ngIf="err('lastName') as msg">{{ msg }}</p>
         </div>
       </div>
       <div class="form-group">
-        <label>Email</label>
-        <input type="email" formControlName="email" placeholder="your@email.com">
+        <label for="su-email">Email</label>
+        <input id="su-email" type="email" formControlName="email" placeholder="name@example.com" autocomplete="email">
         <p class="field-error" *ngIf="err('email') as msg">{{ msg }}</p>
       </div>
       <div class="form-group">
-        <label>Password</label>
-        <input type="password" formControlName="password" placeholder="Create a password">
+        <label for="su-password">Password</label>
+        <div class="pw-field">
+          <input id="su-password" [type]="showSignupPassword ? 'text' : 'password'" formControlName="password"
+                 placeholder="Create a password" autocomplete="new-password">
+          <button type="button" class="pw-toggle" (click)="showSignupPassword = !showSignupPassword"
+                  [attr.aria-label]="showSignupPassword ? 'Hide password' : 'Show password'">
+            <i class="fas" [class.fa-eye]="!showSignupPassword" [class.fa-eye-slash]="showSignupPassword"></i>
+          </button>
+        </div>
 
-        <!-- Live strength meter + rule checklist -->
         <div class="pw-strength" *ngIf="RegisterForm.get('password')?.value">
           <div class="pw-bar"><div class="pw-bar-fill" [class]="passwordStrength.level" [style.width.%]="passwordScore * 20"></div></div>
           <span class="pw-label" [class]="passwordStrength.level">{{ passwordStrength.label }}</span>
         </div>
-        <ul class="pw-rules">
+        <ul class="pw-rules" [class.show-missing]="passwordTouched">
           <li *ngFor="let check of passwordChecks" [class.met]="check.met">
             <i class="fas" [class.fa-check-circle]="check.met" [class.fa-circle]="!check.met"></i>
             {{ check.label }}
           </li>
         </ul>
       </div>
+      <div class="form-group">
+        <label for="su-confirm">Confirm password</label>
+        <input id="su-confirm" [type]="showSignupPassword ? 'text' : 'password'" formControlName="confirmPassword"
+               placeholder="Type the password again" autocomplete="new-password">
+        <p class="field-error" *ngIf="err('confirmPassword') as msg">{{ msg }}</p>
+      </div>
       <div class="form-row">
         <div class="form-group">
-          <label>Phone</label>
-          <input type="tel" formControlName="phone" placeholder="01712345678">
+          <label for="su-phone">Phone</label>
+          <input id="su-phone" type="tel" formControlName="phone" placeholder="01XXXXXXXXX" autocomplete="tel">
           <p class="field-error" *ngIf="err('phone') as msg">{{ msg }}</p>
         </div>
         <div class="form-group">
-          <label>City</label>
-          <input type="text" formControlName="city" placeholder="Dhaka">
+          <label for="su-city">City</label>
+          <input id="su-city" type="text" formControlName="city" placeholder="e.g. Dhaka" autocomplete="address-level2">
           <p class="field-error" *ngIf="err('city') as msg">{{ msg }}</p>
         </div>
       </div>
       <div class="form-group">
-        <label>Address</label>
-        <input type="text" formControlName="address" placeholder="House 12, Road 5, Mirpur">
+        <label for="su-address">Address</label>
+        <input id="su-address" type="text" formControlName="address" placeholder="House, road, area" autocomplete="street-address">
         <p class="field-error" *ngIf="err('address') as msg">{{ msg }}</p>
       </div>
       <div class="form-group">
-        <label>Secondary Phone <span style="font-weight:400;color:var(--muted)">(Optional)</span></label>
-        <input type="tel" formControlName="secondaryPhone" placeholder="Alternate number">
+        <label for="su-phone2">Secondary phone <span class="optional">(optional)</span></label>
+        <input id="su-phone2" type="tel" formControlName="secondaryPhone" placeholder="Another number you can be reached on">
         <p class="field-error" *ngIf="err('secondaryPhone') as msg">{{ msg }}</p>
       </div>
-      <button type="button" class="btn-modal-submit" (click)="onRegister()">
-        <i class="fas fa-user-plus"></i> Create Account
+      <button type="submit" class="btn-modal-submit" [disabled]="registering">
+        <i class="fas" [class.fa-user-plus]="!registering" [class.fa-spinner]="registering" [class.fa-spin]="registering"></i>
+        {{ registering ? 'Creating account...' : 'Create account' }}
       </button>
     </form>
-    <p style="text-align:center;margin-top:1rem;font-size:.88rem;color:var(--muted)">
-      Already have an account? <span style="color:var(--accent);cursor:pointer;font-weight:600" (click)="openLogin()">Sign In</span>
+    <p class="modal-switch">
+      Already have an account? <button type="button" class="link-btn" (click)="openLogin()">Sign in</button>
     </p>
   </div>
 </div>

@@ -14,7 +14,7 @@
   display: flex; align-items: center; justify-content: center;
   color: #fff; font-size: 1.4rem;
 }
-.header-left h1 { font-family: 'Syne',sans-serif; font-size: 1.6rem; font-weight: 800; margin-bottom: .15rem; }
+.header-left h1 { font-family: 'Plus Jakarta Sans',sans-serif; font-size: 1.6rem; font-weight: 800; margin-bottom: .15rem; }
 .header-left p  { color: var(--muted); font-size: .9rem; }
 .btn-clear {
   padding: 9px 18px; background: rgba(233,69,96,.08); color: var(--accent);
@@ -32,7 +32,7 @@
   display: flex; align-items: center; justify-content: center;
   font-size: 2rem; color: #fff; opacity: .4;
 }
-.empty-state h2 { font-family: 'Syne',sans-serif; font-size: 1.4rem; margin-bottom: .5rem; }
+.empty-state h2 { font-family: 'Plus Jakarta Sans',sans-serif; font-size: 1.4rem; margin-bottom: .5rem; }
 .empty-state p  { color: var(--muted); max-width: 400px; margin: 0 auto 2rem; line-height: 1.7; }
 .empty-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
 .btn-action {
@@ -62,7 +62,7 @@
 .my-item-badge.lost  { background: rgba(233,69,96,.1);  color: var(--accent); }
 .my-item-badge.found { background: rgba(22,160,133,.1); color: var(--found); }
 .group-headline { display: flex; flex-direction: column; gap: 1px; }
-.group-item-name { font-family: 'Syne',sans-serif; font-size: 1rem; font-weight: 700; }
+.group-item-name { font-family: 'Plus Jakarta Sans',sans-serif; font-size: 1rem; font-weight: 700; }
 .group-sub { font-size: .72rem; color: var(--muted); }
 .group-right { display: flex; align-items: center; gap: 1rem; }
 .match-count { font-size: .78rem; font-weight: 700; color: var(--accent); background: rgba(233,69,96,.08); padding: 3px 10px; border-radius: 20px; }
@@ -104,7 +104,7 @@
 .conf-weak     { background: rgba(108,117,125,.85); }
 
 .card-body { padding: 1rem; }
-.card-title { font-family: 'Syne',sans-serif; font-size: .95rem; font-weight: 700; margin-bottom: .4rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-title { font-family: 'Plus Jakarta Sans',sans-serif; font-size: .95rem; font-weight: 700; margin-bottom: .4rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Plain-language explanation */
 .match-sentence {

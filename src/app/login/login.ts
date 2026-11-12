@@ -1,30 +1,17 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { AfterViewInit, Component, inject, OnInit } from '@angular/core';
-import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
+import { AfterViewInit, Component, HostListener, inject, OnInit } from '@angular/core';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
-  bdPhone, describeError, meaningfulText, optional, personName, placeName, strictEmail,
+  PASSWORD_RULES, bdPhone, describeError, matchesField, meaningfulText, optional, personName, placeName,
+  strictEmail, strongPassword,
 } from '../validators';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { API_BASE, resolveImageUrl } from '../api';
 import { PHOTO_CATEGORIES, itemMatchesCategory } from '../categories';
-
-/** The rules a sign-up password has to satisfy. Each one lights up green as it is met. */
-export const PASSWORD_RULES: { label: string; test: (v: string) => boolean }[] = [
-  { label: 'At least 8 characters',        test: (v) => v.length >= 8 },
-  { label: 'One uppercase letter (A-Z)',   test: (v) => /[A-Z]/.test(v) },
-  { label: 'One lowercase letter (a-z)',   test: (v) => /[a-z]/.test(v) },
-  { label: 'One number (0-9)',             test: (v) => /[0-9]/.test(v) },
-  { label: 'One symbol (!@#$...)',         test: (v) => /[^A-Za-z0-9]/.test(v) },
-];
-
-/** Blocks registration until every rule above passes. Login is deliberately left alone. */
-export function strongPassword(control: AbstractControl): ValidationErrors | null {
-  const value: string = control.value || '';
-  if (!value) return { required: true };
-  return PASSWORD_RULES.every((r) => r.test(value)) ? null : { weakPassword: true };
-}
+import { session } from '../session';
+import { apiErrorMessage } from '../auth.interceptor';
 
 @Component({
   selector: 'app-login',
@@ -37,13 +24,16 @@ export class Login implements AfterViewInit, OnInit {
   showSignup = false;
   http = inject(HttpClient);
   router = inject(Router);
+  route = inject(ActivatedRoute);
   snackBar = inject(MatSnackBar);
+
+  /** Already signed in: the landing page offers the dashboard instead of sign-in. */
+  get signedIn(): boolean { return session.isLoggedIn(); }
 
   // ── Landing page facts ─────────────────────────────────────────────────────
   //
-  // Everything shown on this page has to be something we can point at: the counts
-  // are read from the live database on load, and the two model numbers come from
-  // the classifier that actually ships with the API. Nothing here is decorative.
+  // The counts are read from the live database on load, and the accuracy figure
+  // comes from the classifier that ships with the API.
 
   /** Test-set accuracy of the trained image classifier (MLModels/model.onnx). */
   readonly photoAccuracy = 88.03;
@@ -69,39 +59,65 @@ export class Login implements AfterViewInit, OnInit {
   /** Where to go once signed in, when the visitor clicked something specific first. */
   private pendingRedirect: string | null = null;
 
+  // ── Form state ─────────────────────────────────────────────────────────────
+  showLoginPassword = false;
+  showSignupPassword = false;
+  loggingIn = false;
+  registering = false;
+  loginError = '';
+  signupError = '';
+
   RegisterForm: FormGroup = new FormGroup({
-    firstName:     new FormControl('', [Validators.required, personName]),
-    lastName:      new FormControl('', [Validators.required, personName]),
-    email:         new FormControl('', [Validators.required, strictEmail]),
-    password:      new FormControl('', [Validators.required, strongPassword]),
-    phone:         new FormControl('', [Validators.required, bdPhone]),
-    address:       new FormControl('', [Validators.required, meaningfulText(5, 120)]),
-    city:          new FormControl('', [Validators.required, placeName]),
-    secondaryPhone: new FormControl('', optional(bdPhone)),
+    firstName:       new FormControl('', [Validators.required, personName]),
+    lastName:        new FormControl('', [Validators.required, personName]),
+    email:           new FormControl('', [Validators.required, strictEmail]),
+    password:        new FormControl('', [Validators.required, strongPassword]),
+    confirmPassword: new FormControl('', [Validators.required, matchesField('password')]),
+    phone:           new FormControl('', [Validators.required, bdPhone]),
+    address:         new FormControl('', [Validators.required, meaningfulText(5, 120)]),
+    city:            new FormControl('', [Validators.required, placeName]),
+    secondaryPhone:  new FormControl('', optional(bdPhone)),
   });
 
   // Login stays deliberately loose: these rules describe how an account is
   // created, and an existing account must never be locked out by a rule added
   // after it was made.
   loginForm: FormGroup = new FormGroup({
-    email:    new FormControl('', [Validators.required, Validators.email]),
+    email:    new FormControl('', [Validators.required, strictEmail]),
     password: new FormControl('', Validators.required),
   });
 
+  constructor() {
+    // Re-check "confirm password" whenever the password itself changes.
+    this.RegisterForm.get('password')!.valueChanges.subscribe(() =>
+      this.RegisterForm.get('confirmPassword')!.updateValueAndValidity({ emitEvent: false }));
+  }
+
   /** The message for whatever rule a sign-up field is currently failing, or null. */
   err(control: string): string | null {
-    return describeError(this.RegisterForm.get(control), Login.LABELS[control] ?? control);
+    const c = this.RegisterForm.get(control);
+    if (control === 'confirmPassword' && c?.hasError('mismatch') && (c.touched || c.dirty)) {
+      return 'Passwords do not match';
+    }
+    if (control === 'password') return null;   // the checklist below the box says it
+    return describeError(c, Login.LABELS[control] ?? control);
+  }
+
+  /** Same, for the sign-in form. */
+  loginErr(control: 'email' | 'password'): string | null {
+    return describeError(this.loginForm.get(control), control === 'email' ? 'Email' : 'Password');
   }
 
   private static readonly LABELS: Record<string, string> = {
-    firstName:      'First name',
-    lastName:       'Last name',
-    email:          'Email',
-    password:       'Password',
-    phone:          'Phone number',
-    address:        'Address',
-    city:           'City',
-    secondaryPhone: 'Secondary phone',
+    firstName:       'First name',
+    lastName:        'Last name',
+    email:           'Email',
+    password:        'Password',
+    confirmPassword: 'Confirm password',
+    phone:           'Phone number',
+    address:         'Address',
+    city:            'City',
+    secondaryPhone:  'Secondary phone',
   };
 
   /** Live checklist for the sign-up password box — recomputed on every keystroke. */
@@ -122,14 +138,25 @@ export class Login implements AfterViewInit, OnInit {
     return { level: 'strong', label: 'Strong' };
   }
 
+  get passwordTouched(): boolean {
+    const c = this.RegisterForm.get('password');
+    return !!c && (c.touched || c.dirty) && c.invalid;
+  }
+
   ngOnInit(): void {
     this.loadStats();
+
+    // Sent here by a protected page: sign in, then go back there.
+    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+    if (returnUrl && returnUrl.startsWith('/') && !this.signedIn) {
+      this.pendingRedirect = returnUrl;
+      this.openLogin();
+    }
   }
 
   /**
    * Reads the real item counts off the API. Best-effort: if the backend is not
-   * reachable the two live tiles simply do not render, rather than the page
-   * showing a number nobody can verify.
+   * reachable the live tiles simply do not render.
    */
   private loadStats() {
     this.http.get<any>(`${API_BASE}/GetAllItem`).subscribe({
@@ -165,11 +192,7 @@ export class Login implements AfterViewInit, OnInit {
 
   /**
    * Opens a read-only preview of one category, right here on the landing page.
-   *
-   * Signing in is not required to look: someone who just lost their phone should
-   * be able to see whether it has been handed in before deciding to make an
-   * account. What stays behind the login is everything personal — the finder's
-   * name and number — which is why the preview shows the item and nothing else.
+   * Anyone can look; the finder's name and number stay behind sign-in.
    */
   openCategory(key: string) {
     this.previewCategory = this.previewCategory === key ? null : key;
@@ -206,7 +229,7 @@ export class Login implements AfterViewInit, OnInit {
 
   /** Sends a signed-in visitor straight there; everyone else signs in and lands there after. */
   goTo(url: string) {
-    if (localStorage.getItem('isLoggedin')) {
+    if (this.signedIn) {
       this.router.navigateByUrl(url);
       return;
     }
@@ -232,53 +255,72 @@ export class Login implements AfterViewInit, OnInit {
   }
 
   onRegister() {
+    this.signupError = '';
     if (this.RegisterForm.invalid) {
       this.RegisterForm.markAllAsTouched();
-      const message = this.RegisterForm.get('password')?.hasError('weakPassword')
-        ? 'Your password does not meet all the requirements yet'
-        : 'Please fill all required fields';
-      this.snackBar.open(message, 'Ok', { duration: 3000, verticalPosition: 'top' });
+      const pw = this.RegisterForm.get('password');
+      this.signupError = pw?.hasError('weakPassword')
+        ? 'Your password does not meet all the requirements yet.'
+        : this.RegisterForm.get('confirmPassword')?.hasError('mismatch')
+          ? 'The two passwords do not match.'
+          : 'Please correct the fields marked in red.';
       return;
     }
-    this.http.post(`${API_BASE}/Register`, this.RegisterForm.value, { responseType: 'text' }).subscribe({
-      next: (res: string) => {
-        if (res === 'Registration successful') {
-          this.snackBar.open('Account created! Please sign in.', 'Ok', { duration: 4000, verticalPosition: 'top' });
-          this.RegisterForm.reset();
-          this.openLogin();
-        }
+
+    this.registering = true;
+    const { confirmPassword, ...body } = this.RegisterForm.value;
+    this.http.post(`${API_BASE}/Register`, body, { responseType: 'text' }).subscribe({
+      next: () => {
+        this.registering = false;
+        const email = this.RegisterForm.value.email;
+        this.RegisterForm.reset();
+        this.openLogin();
+        this.loginForm.patchValue({ email });
+        this.snackBar.open('Account created. Sign in with your new password.', 'OK',
+          { duration: 5000, verticalPosition: 'top', panelClass: 'snack-success' });
       },
-      error: () => {
-        this.snackBar.open('Something went wrong', 'Ok', { duration: 3000, verticalPosition: 'top' });
+      error: (err) => {
+        this.registering = false;
+        this.signupError = apiErrorMessage(err, 'Could not create your account. Please try again.');
       },
     });
   }
 
   onLogin() {
+    this.loginError = '';
     if (this.loginForm.invalid) {
-      this.snackBar.open('Please enter valid credentials', 'Ok', { duration: 3000, verticalPosition: 'top' });
+      this.loginForm.markAllAsTouched();
       return;
     }
-    this.http.post(`${API_BASE}/login`, this.loginForm.value).subscribe({
-      next: (res: any) => {
-        if (res.message === 'Login Successfull') {
-          localStorage.setItem('isLoggedin', 'token');
-          localStorage.setItem('userid', res.userid);
-          if (res.firstName || res.lastName) {
-            localStorage.setItem('username', `${res.firstName || ''} ${res.lastName || ''}`.trim());
-          }
-          this.snackBar.open('Welcome back! 👋', 'Ok', { duration: 3000 });
-          this.router.navigateByUrl(this.pendingRedirect ?? '/dashbord');
-          this.pendingRedirect = null;
+
+    this.loggingIn = true;
+    const body = { email: this.loginForm.value.email.trim(), password: this.loginForm.value.password };
+    this.http.post<any>(`${API_BASE}/login`, body).subscribe({
+      next: (res) => {
+        this.loggingIn = false;
+        if (!res?.token) {
+          this.loginError = 'Sign-in failed. Please try again.';
+          return;
         }
+        session.start(res);
+        this.showLogin = false;
+        this.snackBar.open(`Welcome back${res.firstName ? ', ' + res.firstName : ''}.`, 'OK', { duration: 3000 });
+        this.router.navigateByUrl(this.pendingRedirect ?? '/dashbord');
+        this.pendingRedirect = null;
       },
-      error: () => {
-        this.snackBar.open('Incorrect email or password', 'Ok', { duration: 3000, verticalPosition: 'top' });
+      error: (err) => {
+        this.loggingIn = false;
+        this.loginError = err?.status === 401
+          ? 'The email or password is incorrect.'
+          : apiErrorMessage(err, 'Could not sign you in. Please try again.');
       },
     });
   }
 
-  openLogin()  { this.showLogin = true;  this.showSignup = false; }
-  openSignup() { this.showSignup = true; this.showLogin = false; }
+  openLogin()  { this.showLogin = true;  this.showSignup = false; this.loginError = ''; }
+  openSignup() { this.showSignup = true; this.showLogin = false; this.signupError = ''; }
   closeModal() { this.showLogin = false; this.showSignup = false; }
+
+  @HostListener('document:keydown.escape')
+  onEscape() { if (this.showLogin || this.showSignup) this.closeModal(); }
 }

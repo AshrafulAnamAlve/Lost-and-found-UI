@@ -5,7 +5,7 @@
   background: linear-gradient(135deg, var(--accent2) 0%, #0d1f3c 100%);
   padding: 2.5rem 3rem; color: #fff;
 }
-.reports-header h1 { font-family: 'Syne', sans-serif; font-size: 1.75rem; font-weight: 700; display: flex; align-items: center; gap: 12px; }
+.reports-header h1 { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.75rem; font-weight: 700; display: flex; align-items: center; gap: 12px; }
 .reports-header p  { opacity: .65; font-size: .9rem; margin-top: .35rem; }
 
 /* Filters bar */
@@ -75,7 +75,7 @@
 
 .item-body { padding: 1rem 1.1rem 1.2rem; }
 .item-title {
-  font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1rem; font-weight: 700;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: .4rem;
 }
 .item-desc {
@@ -102,7 +102,7 @@
 /* Empty / Loading */
 .empty-state { grid-column: 1/-1; text-align: center; padding: 4rem 2rem; color: var(--muted); }
 .empty-state i { font-size: 4rem; opacity: .25; display: block; margin-bottom: 1rem; }
-.empty-state h3 { font-family: 'Syne', sans-serif; font-size: 1.1rem; margin-bottom: .5rem; }
+.empty-state h3 { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.1rem; margin-bottom: .5rem; }
 .spinner-wrap { grid-column: 1/-1; display: flex; justify-content: center; padding: 4rem; }
 .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to{transform:rotate(360deg)} }
@@ -118,3 +118,19 @@
   display: inline-flex; align-items: center; gap: 5px;
   box-shadow: 0 4px 14px rgba(0,0,0,.25);
 }
+
+/* Tabs: the whole button is the click target, and the active one is filled. */
+.tab-btn { display: inline-flex; align-items: center; gap: 6px; }
+.tab-btn.tab-active-all   { background: var(--accent2); color: #fff; }
+.tab-btn.tab-active-lost  { background: var(--accent);  color: #fff; }
+.tab-btn.tab-active-found { background: var(--found);   color: #fff; }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.dot-lost  { background: var(--accent); }
+.dot-found { background: var(--found); }
+.tab-active-lost .dot, .tab-active-found .dot { background: #fff; }
+.btn-retry {
+  margin-top: 1rem; border: 1px solid var(--border); background: #fff; color: var(--text);
+  border-radius: 10px; padding: .6rem 1.2rem; font-weight: 600; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-retry:hover { background: #f3f5f9; }

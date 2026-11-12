@@ -1,6 +1,5 @@
 <div class="not-found-container">
   <div class="content">
-    <!-- Animation: Magnifying Glass looking for something -->
     <div class="animation">
       <div class="magnifying-glass">
         <div class="lens"></div>
@@ -10,11 +9,11 @@
     </div>
 
     <h1>404</h1>
-    <h2>Oops! Page Not Found</h2>
-    <p>It seems this page got lost... just like many things we help find every day!</p>
+    <h2>Page not found</h2>
+    <p>The page you are looking for does not exist or has been moved.</p>
 
-    <a routerLink="/dashbord" class="home-btn">
-      <i class="fas fa-home"></i> Go Back Home
+    <a [routerLink]="signedIn ? '/dashbord' : '/login'" class="home-btn">
+      <i class="fas fa-home"></i> {{ signedIn ? 'Go to dashboard' : 'Go to home page' }}
     </a>
   </div>
 </div>

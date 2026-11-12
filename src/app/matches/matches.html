@@ -8,19 +8,22 @@
       <div class="header-icon"><i class="fas fa-robot"></i></div>
       <div>
         <h1>AI Match Results</h1>
-        <p>Items our AI found that match your reports</p>
+        <p>Reports that look like the items you lost or found. Updated every time you open this page.</p>
       </div>
     </div>
-    <button class="btn-clear" *ngIf="groups.length > 0" (click)="clearAll()">
-      <i class="fas fa-trash-alt"></i> Clear All
-    </button>
+
   </div>
 
   <!-- Empty state -->
-  <div class="empty-state" *ngIf="groups.length === 0">
+  <div class="empty-state" *ngIf="loading && groups.length === 0">
+    <div class="empty-icon"><i class="fas fa-spinner fa-spin"></i></div>
+    <h2>Checking for matches...</h2>
+  </div>
+
+  <div class="empty-state" *ngIf="!loading && groups.length === 0">
     <div class="empty-icon"><i class="fas fa-robot"></i></div>
     <h2>No Matches Yet</h2>
-    <p>When you report a lost item, AI will automatically search for matches and show them here.</p>
+    <p>When you report a lost or found item, it is compared with every report on the other side. Matches will appear here.</p>
     <div class="empty-actions">
       <button class="btn-action lost" routerLink="/lost"><i class="fas fa-search-minus"></i> Report Lost Item</button>
       <button class="btn-action found" routerLink="/found"><i class="fas fa-search-plus"></i> Report Found Item</button>
@@ -57,12 +60,12 @@
 
           <!-- Image -->
           <div class="card-img-wrap">
-            <img *ngIf="m.imageUrl" [src]="resolveImg(m.imageUrl)" alt="" (error)="$event.target.style.display='none'">
+            <img *ngIf="m.imageUrl" [src]="resolveImg(m.imageUrl)" alt="" (error)="$any($event.target).style.display='none'">
             <div class="card-img-placeholder" *ngIf="!m.imageUrl">
               <i class="fas fa-image"></i>
             </div>
             <!-- Match % badge + confidence -->
-            <div class="pct-badge" [class]="'pct-' + pctClass(m.matchPercent)">
+            <div class="pct-badge" [class]="'pct-' + pctClass(m)">
               {{ m.matchPercent }}%
             </div>
             <div class="conf-badge" [class]="'conf-' + confKey(m)">
@@ -77,7 +80,7 @@
             <p class="match-sentence">{{ matchSentence(g, m) }}</p>
 
             <div class="card-tags">
-              <span class="tag" *ngIf="m.category"><i class="fas fa-tag"></i>{{ m.category }}</span>
+              <span class="tag" *ngIf="m.category"><i class="fas fa-tag"></i>{{ categoryLabel(m.category) }}</span>
               <span class="tag" *ngIf="m.color"><i class="fas fa-circle" [style.color]="m.color.toLowerCase()"></i>{{ m.color }}</span>
             </div>
 
@@ -93,11 +96,11 @@
             <!-- Match score bar -->
             <div class="score-bar-wrap">
               <div class="score-bar-label">
-                <span>AI Confidence</span>
-                <span class="score-val" [class]="'score-' + pctClass(m.matchPercent)">{{ m.matchPercent }}%</span>
+                <span>Match score</span>
+                <span class="score-val" [class]="'score-' + pctClass(m)">{{ m.matchPercent }}%</span>
               </div>
               <div class="score-bar-track">
-                <div class="score-bar-fill" [class]="'fill-' + pctClass(m.matchPercent)"
+                <div class="score-bar-fill" [class]="'fill-' + pctClass(m)"
                      [style.width.%]="m.matchPercent"></div>
               </div>
             </div>

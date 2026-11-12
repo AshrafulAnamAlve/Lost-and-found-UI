@@ -13,7 +13,7 @@ html {
       primary: mat.$cyan-palette,
       tertiary: mat.$orange-palette,
     ),
-    typography: Roboto,
+    typography: (plain-family: 'DM Sans', brand-family: 'Plus Jakarta Sans'),
     density: 0,
   ));
 }

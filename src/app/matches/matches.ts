@@ -4,6 +4,8 @@ import { Router, RouterModule } from '@angular/router';
 import { MatchService, MatchGroup, MatchItem, MatchReason } from '../match.service';
 import { Navbar } from '../navbar/navbar';
 import { resolveImageUrl } from '../api';
+import { categoryLabel, confidenceKey } from '../categories';
+import { session } from '../session';
 
 @Component({
   selector: 'app-matches',
@@ -16,11 +18,18 @@ export class Matches implements OnInit {
   router   = inject(Router);
 
   groups: MatchGroup[] = [];
-  myId = Number(localStorage.getItem('userid') || 0);
+  myId = session.userId();
+  loading = true;
+  categoryLabel = categoryLabel;
 
   ngOnInit() {
+    // Show what is stored straight away, then replace it with the server's answer,
+    // which drops reports that were deleted or closed since.
     this.groups = this.matchSvc.groups();
-    this.matchSvc.markAllSeen();
+    this.matchSvc.refresh().subscribe({
+      next: groups => { this.groups = groups; this.loading = false; this.matchSvc.markAllSeen(); },
+      error: () => { this.loading = false; this.matchSvc.markAllSeen(); },
+    });
   }
 
   goToItem(type: string, id: number) {
@@ -49,10 +58,9 @@ export class Matches implements OnInit {
     return resolveImageUrl(url);
   }
 
-  pctClass(pct: number): string {
-    if (pct >= 65) return 'high';
-    if (pct >= 35) return 'med';
-    return 'low';
+  /** Colour band for a match, from the same Strong / Possible / Weak label the API gives. */
+  pctClass(m: MatchItem): string {
+    return { strong: 'high', possible: 'med', weak: 'low' }[confidenceKey(m)];
   }
 
   /** The nature of the matched item, relative to the user's own item. */
@@ -64,19 +72,12 @@ export class Matches implements OnInit {
   matchSentence(g: MatchGroup, m: MatchItem): string {
     const mine  = g.myItemType === 'lost' ? 'lost' : 'found';
     const their = this.matchedKind(g.myItemType);
-    return `This ${their} item matches your ${mine} “${g.myItemName}” with ${m.matchPercent}% confidence.`;
+    return `This ${their} item matches your ${mine} item "${g.myItemName}" with ${m.matchPercent}% confidence.`;
   }
 
   /** Normalised confidence bucket for styling/labels. */
   confKey(m: MatchItem): 'strong' | 'possible' | 'weak' {
-    const c = (m.confidence || '').toLowerCase();
-    if (c === 'strong')   return 'strong';
-    if (c === 'possible') return 'possible';
-    if (c === 'weak')     return 'weak';
-    // Fallback from percentage if the API didn't send a label.
-    if (m.matchPercent >= 72) return 'strong';
-    if (m.matchPercent >= 55) return 'possible';
-    return 'weak';
+    return confidenceKey(m);
   }
 
   confLabel(m: MatchItem): string {
@@ -105,5 +106,5 @@ export class Matches implements OnInit {
     return `${Math.floor(diff / 86400)}d ago`;
   }
 
-  clearAll() { this.matchSvc.clear(); this.groups = []; }
+
 }

@@ -24,7 +24,7 @@
 .resolve-close:hover { background: var(--accent, #e94560); color: #fff; }
 
 .resolve-title {
-  font-family: 'Syne', sans-serif; font-size: 1.2rem; font-weight: 700;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.2rem; font-weight: 700;
   display: flex; align-items: center; gap: 9px;
 }
 .resolve-title i { color: var(--found, #16a085); }

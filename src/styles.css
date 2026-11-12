@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
 @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css');
 
 :root {
@@ -38,6 +38,46 @@ body {
 .mat-mdc-snack-bar-container .mdc-snackbar__surface {
   background: var(--primary) !important;
   border-radius: 12px !important;
+}
+/* Material asks for Roboto, which this app never loads - without this the toast
+   falls back to the browser's serif font and looks out of place. */
+.mat-mdc-snack-bar-container,
+.mat-mdc-snack-bar-container .mat-mdc-snack-bar-label,
+.mat-mdc-snack-bar-container .mdc-snackbar__label,
+.mat-mdc-snack-bar-container .mat-mdc-button {
+  font-family: 'DM Sans', sans-serif !important;
+  font-size: .9rem !important;
+  letter-spacing: 0 !important;
+}
+.mat-mdc-snack-bar-container .mat-mdc-button { font-weight: 700 !important; }
+.mat-mdc-snack-bar-container.snack-error .mdc-snackbar__surface { background: #8e1f2e !important; }
+.mat-mdc-snack-bar-container.snack-success .mdc-snackbar__surface { background: #0e6b58 !important; }
+
+/* ── Landing page particles ──
+   Created with document.createElement, so they never get the component's scoped
+   attribute - their styles have to live here or they render as plain squares. */
+.particle {
+  position: absolute; border-radius: 50%; pointer-events: none;
+  animation: laf-particle-float 6s ease-in-out infinite;
+}
+@keyframes laf-particle-float {
+  0%, 100% { transform: translateY(0); opacity: .45; }
+  50%      { transform: translateY(-28px); opacity: .9; }
+}
+
+/* ── Password field with a show/hide button ── */
+.pw-field { position: relative; }
+.pw-field input { padding-right: 2.75rem !important; }
+.pw-toggle {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  border: 0; background: transparent; color: var(--muted); cursor: pointer;
+  width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+}
+.pw-toggle:hover { color: var(--text); background: rgba(0,0,0,.05); }
+
+/* Keyboard focus that is visible everywhere. */
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
 }
 
 

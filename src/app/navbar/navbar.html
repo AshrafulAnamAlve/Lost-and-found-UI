@@ -1,7 +1,7 @@
 <nav class="navbar">
   <a class="logo" routerLink="/dashbord"><div class="logo-dot"></div>Lost &amp; Found</a>
 
-  <div class="nav-links">
+  <div class="nav-links" [class.open]="menuOpen">
     <a class="nav-link" routerLink="/dashbord"  routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">
       <i class="fas fa-home"></i> Dashboard
     </a>
@@ -14,28 +14,36 @@
     <a class="nav-link"            routerLink="/reports" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">
       <i class="fas fa-list-ul"></i> Browse Items
     </a>
+    <a class="nav-link mobile-only" routerLink="/profile" routerLinkActive="active">
+      <i class="fas fa-user"></i> My Profile
+    </a>
+    <button type="button" class="nav-link mobile-only nav-logout" (click)="logout()">
+      <i class="fas fa-sign-out-alt"></i> Sign out
+    </button>
   </div>
 
   <div class="nav-right">
-    <!-- Messages -->
-    <div class="bell-wrap" routerLink="/messages" title="Messages">
+    <a class="bell-wrap" routerLink="/messages" title="Messages" aria-label="Messages">
       <i class="fas fa-comment-dots"></i>
       <span class="bell-badge" *ngIf="msgUnread > 0">{{ msgUnread }}</span>
-    </div>
+    </a>
 
-    <!-- Notification Bell -->
-    <div class="bell-wrap" (click)="goToMatches()" title="AI Match Notifications">
+    <a class="bell-wrap" routerLink="/matches" title="Match notifications" aria-label="Match notifications">
       <i class="fas fa-bell"></i>
       <span class="bell-badge" *ngIf="unseenCount > 0">{{ unseenCount }}</span>
-    </div>
+    </a>
 
-    <a class="user-chip" routerLink="/profile">
+    <a class="user-chip desktop-only" routerLink="/profile" [title]="displayName || 'My profile'">
       <img class="chip-avatar" *ngIf="userSvc.avatarUrl(); else chipIcon" [src]="userSvc.avatarUrl()" alt="">
       <ng-template #chipIcon><i class="fas fa-user-circle"></i></ng-template>
-      <span>{{ displayName || 'My Profile' }}</span>
+      <span>{{ shortName }}</span>
     </a>
-    <span class="logout-btn" (click)="logout()">
-      <i class="fas fa-sign-out-alt"></i>
-    </span>
+    <button type="button" class="logout-btn desktop-only" (click)="logout()" title="Sign out" aria-label="Sign out">
+      <i class="fas fa-sign-out-alt"></i> <span class="logout-text">Sign out</span>
+    </button>
+
+    <button type="button" class="menu-toggle" (click)="toggleMenu()" [attr.aria-expanded]="menuOpen" aria-label="Menu">
+      <i class="fas" [class.fa-bars]="!menuOpen" [class.fa-times]="menuOpen"></i>
+    </button>
   </div>
 </nav>

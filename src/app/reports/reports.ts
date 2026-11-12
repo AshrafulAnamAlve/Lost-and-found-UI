@@ -5,7 +5,7 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { Navbar } from '../navbar/navbar';
 import { API_ORIGIN } from '../api';
-import { itemMatchesCategory } from '../categories';
+import { ITEM_CATEGORIES, categoryLabel, itemMatchesCategory } from '../categories';
 
 @Component({
   selector: 'app-reports',
@@ -16,6 +16,9 @@ import { itemMatchesCategory } from '../categories';
 export class Reports implements OnInit {
   activeTab: 'all' | 'lost' | 'found' = 'all';
   loading = true;
+  loadFailed = false;
+  readonly categories = ITEM_CATEGORIES;
+  categoryLabel = categoryLabel;
   http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);
 
@@ -30,6 +33,8 @@ export class Reports implements OnInit {
     // Arriving from a category card on the landing page: open already filtered.
     const category = this.route.snapshot.queryParamMap.get('category');
     if (category) this.filters.category = category.toLowerCase();
+    const tab = this.route.snapshot.queryParamMap.get('tab');
+    if (tab === 'lost' || tab === 'found') this.activeTab = tab;
 
     this.getAllItem();
   }
@@ -43,6 +48,7 @@ export class Reports implements OnInit {
 
   getAllItem() {
     this.loading = true;
+    this.loadFailed = false;
     this.http.get<any>(`${API_ORIGIN}/api/LostAndFound/GetAllItem`).subscribe({
       next: (res) => {
         const lostArr  = res?.lost  || res?.Lost  || [];
@@ -55,7 +61,7 @@ export class Reports implements OnInit {
         this.applyFilters();
         this.cdr.detectChanges();
       },
-      error: () => { this.loading = false; this.cdr.detectChanges(); }
+      error: () => { this.loading = false; this.loadFailed = true; this.cdr.detectChanges(); }
     });
   }
 
@@ -63,16 +69,31 @@ export class Reports implements OnInit {
   search() { this.applyFilters(); }
 
   applyFilters() {
-    const kw  = this.filters.keyword.toLowerCase();
+    const kw  = this.filters.keyword.trim().toLowerCase();
     const cat = this.filters.category.toLowerCase();
     const loc = this.filters.location.toLowerCase();
     this.filteredItems = this.items.filter(item => {
       if (this.activeTab !== 'all' && item.type !== this.activeTab) return false;
-      if (kw  && !(item.title    || '').toLowerCase().includes(kw))  return false;
+      if (kw) {
+        // Name, description, brand, colour and place - whatever the person remembers.
+        const haystack = [item.title, item.description, item.brand, item.color, item.location, categoryLabel(item.category)]
+          .filter(Boolean).join(' ').toLowerCase();
+        if (!kw.split(/\s+/).every((word: string) => haystack.includes(word))) return false;
+      }
       if (cat && !itemMatchesCategory(item, cat)) return false;
       if (loc && !(item.location || '').toLowerCase().includes(loc)) return false;
       return true;
     });
+  }
+
+  clearFilters() {
+    this.filters = { keyword: '', category: '', location: '' };
+    this.activeTab = 'all';
+    this.applyFilters();
+  }
+
+  get hasFilters(): boolean {
+    return !!(this.filters.keyword || this.filters.category || this.filters.location || this.activeTab !== 'all');
   }
 
   imgError(event: any) {

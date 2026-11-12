@@ -1,15 +1,21 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, ElementRef, inject, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, HostListener, inject, OnInit, ViewChild } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
-import { forkJoin, of } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Navbar } from '../navbar/navbar';
 import { HttpClient } from '@angular/common/http';
-import { API_ORIGIN } from '../api';
-import { MatchItem, MatchReason } from '../match.service';
+import { API_BASE, resolveImageUrl } from '../api';
+import { MatchItem, MatchReason, MatchService } from '../match.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { UserService } from '../user.service';
 import { ResolveItem } from '../resolve-item/resolve-item';
+import { apiErrorMessage } from '../auth.interceptor';
+import { categoryLabel, confidenceKey } from '../categories';
+import { session } from '../session';
+import {
+  PASSWORD_RULES, bdPhone, describeError, matchesField, meaningfulText, optional, personName, placeName,
+  strictEmail, strongPassword,
+} from '../validators';
 
 interface ProfileMatchGroup {
   itemId: number;
@@ -18,30 +24,33 @@ interface ProfileMatchGroup {
   matches: MatchItem[];
 }
 
+const NO_IMAGE =
+  "data:image/svg+xml;charset=UTF-8,<svg xmlns='http://www.w3.org/2000/svg' width='150' height='150'><rect width='150' height='150' fill='%23e9edf3'/><text x='50%' y='50%' alignment-baseline='middle' text-anchor='middle' fill='%238a94a6' font-family='sans-serif' font-size='13'>No photo</text></svg>";
+
 @Component({
   selector: 'app-profile',
-  imports: [CommonModule, Navbar, RouterModule, ResolveItem],
+  imports: [CommonModule, Navbar, RouterModule, ResolveItem, ReactiveFormsModule],
   templateUrl: './profile.html',
   styleUrl: './profile.css',
 })
-export class Profile implements OnInit{
-user: any;
-  // raw arrays returned from API (may not be normalized)
+export class Profile implements OnInit {
+  user: any;
   lost: any[] = [];
   found: any[] = [];
-  // combined, normalized list used for rendering cards
+  /** The user's reports, newest first, in one shape for the cards. */
   userItems: any[] = [];
+  itemsLoaded = false;
+  loadFailed = false;
 
-  // AI match summaries for the user's items
   aiGroups: ProfileMatchGroup[] = [];
   loadingMatches = true;
+
+  categoryLabel = categoryLabel;
 
   // ── Profile picture ────────────────────────────────────────────────────────
   @ViewChild('avatarInput') avatarInput!: ElementRef<HTMLInputElement>;
   uploadingAvatar = false;
   avatarDragging = false;
-
-  /** Shown the instant a file is picked, so the circle never sits empty while uploading. */
   avatarPreview: string | null = null;
 
   private static readonly MAX_AVATAR_BYTES = 5 * 1024 * 1024;
@@ -52,130 +61,131 @@ user: any;
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
   private userSvc = inject(UserService);
+  private matchSvc = inject(MatchService);
+
+  // ── Edit profile / change password ─────────────────────────────────────────
+  editingProfile = false;
+  savingProfile = false;
+  profileError = '';
+  changingPassword = false;
+  savingPassword = false;
+  passwordError = '';
+  showPasswords = false;
+
+  profileForm = new FormGroup({
+    firstName:      new FormControl('', [Validators.required, personName]),
+    lastName:       new FormControl('', [Validators.required, personName]),
+    email:          new FormControl('', [Validators.required, strictEmail]),
+    phone:          new FormControl('', [Validators.required, bdPhone]),
+    secondaryPhone: new FormControl('', optional(bdPhone)),
+    city:           new FormControl('', [Validators.required, placeName]),
+    address:        new FormControl('', [Validators.required, meaningfulText(5, 120)]),
+  });
+
+  passwordForm = new FormGroup({
+    currentPassword: new FormControl('', Validators.required),
+    newPassword:     new FormControl('', [Validators.required, strongPassword]),
+    confirmPassword: new FormControl('', [Validators.required, matchesField('newPassword')]),
+  });
+
+  private static readonly LABELS: Record<string, string> = {
+    firstName: 'First name', lastName: 'Last name', email: 'Email', phone: 'Phone number',
+    secondaryPhone: 'Secondary phone', city: 'City', address: 'Address',
+    currentPassword: 'Current password', newPassword: 'New password', confirmPassword: 'Confirm password',
+  };
+
+  constructor() {
+    this.passwordForm.get('newPassword')!.valueChanges.subscribe(() =>
+      this.passwordForm.get('confirmPassword')!.updateValueAndValidity({ emitEvent: false }));
+  }
+
+  pErr(name: string): string | null {
+    return describeError(this.profileForm.get(name), Profile.LABELS[name] ?? name);
+  }
+
+  pwErr(name: string): string | null {
+    const c = this.passwordForm.get(name);
+    if (name === 'confirmPassword' && c?.hasError('mismatch') && (c.touched || c.dirty)) return 'Passwords do not match';
+    if (name === 'newPassword' && c?.hasError('weakPassword') && (c.touched || c.dirty)) return 'The new password does not meet all the rules below';
+    return describeError(c, Profile.LABELS[name] ?? name);
+  }
+
+  get newPasswordChecks() {
+    const value = this.passwordForm.get('newPassword')?.value || '';
+    return PASSWORD_RULES.map((r) => ({ label: r.label, met: r.test(value) }));
+  }
 
   ngOnInit(): void {
-    const id = localStorage.getItem("userid");
+    const id = session.userId();
     if (id) {
-      this.getUser(+id);
-      this.getUserItem(+id);
+      this.getUser(id);
+      this.getUserItems(id);
     }
   }
 
   getUser(id: number) {
-    this.http.get<any>(`${API_ORIGIN}/api/LostAndFound/getUser/${id}`).subscribe({
+    this.http.get<any>(`${API_BASE}/getUser/${id}`).subscribe({
       next: (res) => {
         this.user = res;
+        session.setName(`${res.firstName || ''} ${res.lastName || ''}`);
+        this.cdr.detectChanges();
+      },
+      error: (err) => this.notify(apiErrorMessage(err, 'Could not load your profile.'), true),
+    });
+  }
+
+  private normalizeItems(lostArr: any[], foundArr: any[]) {
+    const card = (x: any, type: 'lost' | 'found') => ({
+      ...x,
+      type,
+      title: x.itemName || '',
+      date: type === 'lost' ? x.dateLost : x.dateFound,
+      location: x.location || '',
+      image: x.imageUrl ? resolveImageUrl(x.imageUrl) : NO_IMAGE,
+    });
+    return [...(lostArr || []).map((l) => card(l, 'lost')), ...(foundArr || []).map((f) => card(f, 'found'))]
+      .sort((a: any, b: any) => (b.id || 0) - (a.id || 0));
+  }
+
+  getUserItems(id: number) {
+    this.http.get<any>(`${API_BASE}/GetUserItems/${id}`).subscribe({
+      next: (res) => {
+        this.lost = res.lost || [];
+        this.found = res.found || [];
+        this.userItems = this.normalizeItems(this.lost, this.found);
+        this.itemsLoaded = true;
+        this.loadMatches();
         this.cdr.detectChanges();
       },
       error: (err) => {
-        alert(err.error);
-      }
+        this.itemsLoaded = true;
+        this.loadFailed = true;
+        this.loadingMatches = false;
+        this.notify(apiErrorMessage(err, 'Could not load your reports.'), true);
+      },
     });
   }
 
-  /** convert raw lost/found entries into unified shape used by cards */
-  private normalizeItems(lostArr: any[], foundArr: any[]) {
-    const resolveImage = (raw: string | undefined | null, type: string): string => {
-      const placeholder =
-        "data:image/svg+xml;charset=UTF-8,<svg xmlns='http://www.w3.org/2000/svg' width='150' height='150'><rect width='150' height='150' fill='%23ccc'/><text x='50%' y='50%' alignment-baseline='middle' text-anchor='middle' fill='%23666' font-size='14'>No Image</text></svg>";
-      if (!raw) return placeholder;
-      if (raw.startsWith('http') || raw.startsWith('data:')) return raw;
-      let path: string;
-      if (!raw.includes('/')) {
-        path = `/uploads/${type}/${raw}`;
-      } else {
-        path = raw.startsWith('/') ? raw : '/' + raw;
-      }
-      const encoded = path
-        .split('/')
-        .map((seg) => encodeURIComponent(seg))
-        .join('/');
-      return API_ORIGIN + encoded;
-    };
-
-    const lost = (lostArr || []).map((l: any) => {
-      return {
-        ...l,
-        type: 'lost',
-        title: l.itemName || l.title || '',
-        date: l.dateLost || l.date || null,
-        location: l.location || '',
-        image: resolveImage(l.imageUrl || l.image, 'lost')
-      };
-    });
-
-    const found = (foundArr || []).map((f: any) => {
-      return {
-        ...f,
-        type: 'found',
-        title: f.itemName || f.title || '',
-        date: f.dateFound || f.date || null,
-        location: f.location || '',
-        image: resolveImage(f.imageUrl || f.image, 'found')
-      };
-    });
-
-    const all = [...lost, ...found];
-    // newest first if id present
-    all.sort((a: any, b: any) => (b.id || 0) - (a.id || 0));
-    return all;
-  }
-
-  getUserItem(id: number) {
-    this.http
-      .get<any>(`${API_ORIGIN}/api/LostAndFound/GetUserItems/${id}`)
-      .subscribe({
-        next: (res) => {
-          this.lost = res.lost || [];
-          this.found = res.found || [];
-          this.userItems = this.normalizeItems(this.lost, this.found);
-          this.loadMatches();
-          this.cdr.detectChanges();
-        },
-        error: (err) => {
-          alert(err + "User Item not problem");
-        }
-      });
-  }
-
-  /** Fetch AI matches for every item the user posted and keep only ones that matched. */
+  /** Matches for every open report of the user's, best first. */
   private loadMatches() {
-    const base = `${API_ORIGIN}/api/LostAndFound`;
-    const calls = [
-      ...this.lost.map(it => this.http.get<any>(`${base}/GetMatchesForLost/${it.id}`).pipe(
-        map(r => ({ itemId: it.id, itemName: it.itemName, type: 'lost' as const, matches: (r?.suggestedMatches ?? []) as MatchItem[] })),
-        catchError(() => of({ itemId: it.id, itemName: it.itemName, type: 'lost' as const, matches: [] as MatchItem[] })))),
-      ...this.found.map(it => this.http.get<any>(`${base}/GetMatchesForFound/${it.id}`).pipe(
-        map(r => ({ itemId: it.id, itemName: it.itemName, type: 'found' as const, matches: (r?.suggestedMatches ?? []) as MatchItem[] })),
-        catchError(() => of({ itemId: it.id, itemName: it.itemName, type: 'found' as const, matches: [] as MatchItem[] })))),
-    ];
-
-    if (calls.length === 0) { this.loadingMatches = false; return; }
-
-    forkJoin(calls).subscribe(results => {
-      this.aiGroups = results
-        .filter(r => r.matches.length > 0)
-        .sort((a, b) => (b.matches[0]?.matchPercent || 0) - (a.matches[0]?.matchPercent || 0));
-      this.loadingMatches = false;
-      this.cdr.detectChanges();
+    this.matchSvc.refresh().subscribe({
+      next: (groups) => {
+        this.aiGroups = groups.map((g) => ({ itemId: g.myItemId, itemName: g.myItemName, type: g.myItemType, matches: g.matches }));
+        this.loadingMatches = false;
+        this.cdr.detectChanges();
+      },
+      error: () => { this.loadingMatches = false; this.cdr.detectChanges(); },
     });
   }
 
   // ── match display helpers ───────────────────────────────────────────────
   matchedKind(type: 'lost' | 'found'): string { return type === 'lost' ? 'found' : 'lost'; }
 
-  confKey(m: MatchItem): 'strong' | 'possible' | 'weak' {
-    const c = (m.confidence || '').toLowerCase();
-    if (c === 'strong' || c === 'possible' || c === 'weak') return c as any;
-    if (m.matchPercent >= 72) return 'strong';
-    if (m.matchPercent >= 55) return 'possible';
-    return 'weak';
-  }
+  confKey(m: MatchItem): 'strong' | 'possible' | 'weak' { return confidenceKey(m); }
   confLabel(m: MatchItem): string {
     return { strong: 'Strong match', possible: 'Possible match', weak: 'Weak match' }[this.confKey(m)];
   }
 
-  /** Top positive signals, capped so the summary stays compact. */
   topReasons(m: MatchItem, limit = 4): MatchReason[] {
     const order: Record<string, number> = { match: 0, partial: 1, mismatch: 2 };
     return [...(m.matchReasons || [])]
@@ -188,29 +198,87 @@ user: any;
     return 'fa-circle-xmark';
   }
 
-  resolveImg(raw: string | undefined): string {
-    if (!raw) return '';
-    if (raw.startsWith('http') || raw.startsWith('data:')) return raw;
-    return `${API_ORIGIN}${raw}`;
-  }
+  resolveImg(raw: string | undefined): string { return resolveImageUrl(raw); }
 
   viewMatch(type: 'lost' | 'found', id: number) {
     this.router.navigate(['/productDetails', this.matchedKind(type), id]);
   }
 
+  // ── edit profile ────────────────────────────────────────────────────────
+
+  openEditProfile() {
+    if (!this.user) return;
+    this.profileError = '';
+    this.profileForm.reset({
+      firstName: this.user.firstName || '', lastName: this.user.lastName || '', email: this.user.email || '',
+      phone: this.user.phone || '', secondaryPhone: this.user.secondaryPhone || '',
+      city: this.user.city || '', address: this.user.address || '',
+    });
+    this.editingProfile = true;
+  }
+
+  saveProfile() {
+    this.profileError = '';
+    if (this.profileForm.invalid) {
+      this.profileForm.markAllAsTouched();
+      this.profileError = 'Please correct the fields marked in red.';
+      return;
+    }
+    this.savingProfile = true;
+    this.http.put<any>(`${API_BASE}/UpdateUser`, this.profileForm.value).subscribe({
+      next: (res) => {
+        this.savingProfile = false;
+        this.user = { ...this.user, ...res.user };
+        session.setName(`${this.user.firstName} ${this.user.lastName}`);
+        this.editingProfile = false;
+        this.notify('Profile updated. Your reports now show the new contact details.');
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.savingProfile = false;
+        this.profileError = apiErrorMessage(err, 'Could not save your profile. Please try again.');
+      },
+    });
+  }
+
+  openChangePassword() {
+    this.passwordError = '';
+    this.passwordForm.reset();
+    this.showPasswords = false;
+    this.changingPassword = true;
+  }
+
+  savePassword() {
+    this.passwordError = '';
+    if (this.passwordForm.invalid) {
+      this.passwordForm.markAllAsTouched();
+      return;
+    }
+    this.savingPassword = true;
+    const { currentPassword, newPassword } = this.passwordForm.value;
+    this.http.post<any>(`${API_BASE}/ChangePassword`, { currentPassword, newPassword }).subscribe({
+      next: () => {
+        this.savingPassword = false;
+        this.changingPassword = false;
+        this.notify('Password changed.');
+      },
+      error: (err) => {
+        this.savingPassword = false;
+        this.passwordError = apiErrorMessage(err, 'Could not change your password. Please try again.');
+      },
+    });
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape() { this.editingProfile = false; this.changingPassword = false; }
+
   // ── profile picture ─────────────────────────────────────────────────────
 
-  /**
-   * The picture to draw: the local preview while an upload is in flight, then the
-   * stored one. Empty means the user has never uploaded a photo — the template
-   * draws their initials rather than a stock face, so "no photo yet" is obvious.
-   */
   get avatarSrc(): string {
     if (this.avatarPreview) return this.avatarPreview;
     return this.user?.imageUrl ? this.resolveImg(this.user.imageUrl) : '';
   }
 
-  /** Initials for the placeholder circle. */
   get initials(): string {
     const first = (this.user?.firstName || '').trim();
     const last  = (this.user?.lastName  || '').trim();
@@ -224,7 +292,6 @@ user: any;
   onAvatarSelected(e: any) {
     const file: File | undefined = e?.target?.files?.[0];
     if (file) this.chooseAvatar(file);
-    // Clear it, or picking the same file twice in a row raises no change event.
     if (e?.target) e.target.value = '';
   }
 
@@ -237,15 +304,14 @@ user: any;
     if (file) this.chooseAvatar(file);
   }
 
-  /** Checks the file before it goes anywhere, then shows it while it uploads. */
   private chooseAvatar(file: File) {
     if (!Profile.ALLOWED_TYPES.includes(file.type)) {
-      this.notify('Choose a JPG, PNG, WebP or GIF image');
+      this.notify('Please choose a JPG, PNG, WebP or GIF image.', true);
       return;
     }
     if (file.size > Profile.MAX_AVATAR_BYTES) {
       const mb = (file.size / (1024 * 1024)).toFixed(1);
-      this.notify(`That image is ${mb} MB — please choose one under 5 MB`);
+      this.notify(`That image is ${mb} MB. Please choose one under 5 MB.`, true);
       return;
     }
 
@@ -257,44 +323,43 @@ user: any;
   }
 
   private uploadAvatar(file: File) {
-    const id = localStorage.getItem('userid');
+    const id = session.userId();
     if (!id) return;
 
     this.uploadingAvatar = true;
     const fd = new FormData();
     fd.append('image', file, file.name);
 
-    this.http.post<any>(`${API_ORIGIN}/api/LostAndFound/UploadImage/user/${id}`, fd).subscribe({
+    this.http.post<any>(`${API_BASE}/UploadImage/user/${id}`, fd).subscribe({
       next: (res) => {
-        // Append a cache-buster so the <img> refreshes immediately.
         if (this.user) this.user.imageUrl = `${res.imageUrl}?t=${Date.now()}`;
-        this.userSvc.setAvatar(res.imageUrl);   // the navbar shows it too
+        this.userSvc.setAvatar(res.imageUrl);
         this.avatarPreview = null;
         this.uploadingAvatar = false;
-        this.notify('Profile picture updated');
+        this.notify('Profile picture updated.');
         this.cdr.detectChanges();
       },
-      error: () => {
-        this.avatarPreview = null;              // keep showing what is actually saved
+      error: (err) => {
+        this.avatarPreview = null;
         this.uploadingAvatar = false;
-        this.notify('Could not upload the picture. Please try again.');
+        this.notify(apiErrorMessage(err, 'Could not upload the picture. Please try again.'), true);
         this.cdr.detectChanges();
       },
     });
   }
 
-  private notify(message: string) {
-    this.snackBar.open(message, 'Ok', { duration: 4000, verticalPosition: 'top' });
+  private notify(message: string, isError = false) {
+    this.snackBar.open(message, 'OK', {
+      duration: isError ? 6000 : 4000, verticalPosition: 'top', panelClass: isError ? 'snack-error' : undefined,
+    });
   }
 
   // ── closing a report off ────────────────────────────────────────────────
 
-  /** The item whose "mark as returned" dialog is open, if any. */
   resolving: any = null;
 
   isResolved(item: any): boolean { return item?.status === 'resolved'; }
 
-  /** The AI's suggestions for this item — offered as who it might have gone to. */
   matchesFor(item: any): MatchItem[] {
     return this.aiGroups.find((g) => g.itemId === item.id && g.type === item.type)?.matches ?? [];
   }
@@ -314,51 +379,48 @@ user: any;
       resolvedWithItemId: result?.resolvedWithItemId ?? null,
       resolvedNote: result?.resolvedNote ?? null,
     });
+    // A closed report is out of matching, so its suggestions go too.
+    this.aiGroups = this.aiGroups.filter((g) => !(g.itemId === item.id && g.type === item.type));
+    this.matchSvc.removeGroup(item.id, item.type);
     this.cdr.detectChanges();
   }
 
-  /** Undo — a report closed by mistake must not be stuck that way. */
   reopenItem(item: any) {
-    this.http.post<any>(`${API_ORIGIN}/api/LostAndFound/Reopen`, {
-      type: item.type,
-      id: item.id,
-      userId: Number(localStorage.getItem('userid') || 0),
-    }).subscribe({
+    this.http.post<any>(`${API_BASE}/Reopen`, { type: item.type, id: item.id }).subscribe({
       next: () => {
         Object.assign(item, { status: 'open', resolvedAt: null, resolvedWithUserId: null, resolvedWithItemId: null, resolvedNote: null });
-        this.snackBar.open('Report reopened — it is back in matching', 'Ok', { duration: 3500, verticalPosition: 'top' });
+        this.notify('Report reopened. It is back in matching.');
+        this.loadMatches();
         this.cdr.detectChanges();
       },
-      error: (err) => {
-        this.snackBar.open(err?.error?.message || 'Could not reopen this report', 'Ok', { duration: 4000, verticalPosition: 'top' });
-      },
+      error: (err) => this.notify(apiErrorMessage(err, 'Could not reopen this report.'), true),
     });
   }
 
-  /** handlers for edit/delete buttons */
+  // ── edit / delete ───────────────────────────────────────────────────────
+
   editItem(item: any) {
-    console.log('edit clicked', item);
-    // navigate to detail page or edit form
-    this.router.navigate(['/productDetails', item.type, item.id]);
+    this.router.navigate([`/${item.type}/edit`, item.id]);
   }
 
   deleteItem(item: any) {
-    if (confirm('Are you sure you want to delete this item?')) {
-      this.http
-        .delete(`${API_ORIGIN}/api/LostAndFound/Delete/${item.type}/${item.id}`)
-        .subscribe({
-          next: () => {
-            this.userItems = this.userItems.filter((i) => i.id !== item.id);
-            this.cdr.detectChanges();
-          },
-          error: (err) => alert(err)
-        });
-    }
+    if (!confirm(`Delete "${item.title}"? This cannot be undone.`)) return;
+    this.http.delete(`${API_BASE}/Delete/${item.type}/${item.id}`).subscribe({
+      next: () => {
+        // A lost report and a found report can share the same id, so match on both.
+        const same = (x: { id?: number; itemId?: number; type: string }) =>
+          (x.id ?? x.itemId) === item.id && x.type === item.type;
+        this.userItems = this.userItems.filter((i) => !same(i));
+        this.aiGroups = this.aiGroups.filter((g) => !same(g));
+        this.matchSvc.removeGroup(item.id, item.type);
+        this.notify('Report deleted.');
+        this.cdr.detectChanges();
+      },
+      error: (err) => this.notify(apiErrorMessage(err, 'Could not delete this report.'), true),
+    });
   }
 
   imgError(event: any) {
-    const tgt = event.target as HTMLImageElement;
-    tgt.src = "data:image/svg+xml;charset=UTF-8,<svg xmlns='http://www.w3.org/2000/svg' width='150' height='150'><rect width='150' height='150' fill='%23ccc'/><text x='50%' y='50%' alignment-baseline='middle' text-anchor='middle' fill='%23666' font-size='14'>No Image</text></svg>";
+    (event.target as HTMLImageElement).src = NO_IMAGE;
   }
-
 }

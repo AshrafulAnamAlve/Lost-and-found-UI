@@ -66,7 +66,6 @@ export class ResolveItem {
     this.http.post<any>(`${API_BASE}/MarkResolved`, {
       type: this.item.type,
       id: this.item.id,
-      userId: Number(localStorage.getItem('userid') || 0),
       counterpartItemId: chosen ? chosen.id : null,
       counterpartUserId: chosen ? chosen.userId ?? null : null,
       note: this.note.trim() || null,
@@ -74,7 +73,7 @@ export class ResolveItem {
       next: (res) => {
         this.saving = false;
         this.snackBar.open(
-          this.isLost ? 'Marked as returned 🎉' : 'Marked as handed over 🎉',
+          this.isLost ? 'Marked as returned.' : 'Marked as handed over.',
           'Ok', { duration: 4000, verticalPosition: 'top' });
         this.resolved.emit(res);
       },

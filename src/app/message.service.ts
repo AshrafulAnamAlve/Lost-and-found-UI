@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { HubConnection, HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr';
 
 import { MESSAGES_API as API, CHAT_HUB as HUB } from './api';
+import { session } from './session';
 
 export interface ChatMessage {
   id: number;
@@ -42,14 +43,15 @@ export class MessageService {
   readonly activeMessages = this._activeMessages.asReadonly();
   readonly activePartner  = this._activePartner.asReadonly();
 
-  private get uid(): number { return Number(localStorage.getItem('userid') || 0); }
+  private get uid(): number { return session.userId(); }
 
   /** Open the realtime connection (called after login / on navbar init). */
   connect() {
     const uid = this.uid;
-    if (!uid || this.conn) return;
+    if (!uid || !session.token() || this.conn) return;
+    // The hub knows who this is from the token, which SignalR sends as access_token.
     this.conn = new HubConnectionBuilder()
-      .withUrl(`${HUB}?userId=${uid}`, { withCredentials: true })
+      .withUrl(HUB, { withCredentials: true, accessTokenFactory: () => session.token() || '' })
       .withAutomaticReconnect()
       .build();
     this.conn.on('ReceiveMessage', (msg: ChatMessage) => this.onReceive(msg));
@@ -122,18 +124,22 @@ export class MessageService {
 
   clearActive() { this._activePartner.set(null); this._activeMessages.set([]); }
 
+  /** Sends a message. Resolves false when it could not be delivered, so the page can say so. */
   send(receiverId: number, content: string,
-       ctx?: { itemId?: number; itemType?: string; itemName?: string }) {
+       ctx?: { itemId?: number; itemType?: string; itemName?: string }): Promise<boolean> {
     const body = {
       senderId: this.uid, receiverId, content: content.trim(),
       itemId: ctx?.itemId, itemType: ctx?.itemType, itemName: ctx?.itemName,
     };
-    this.http.post<ChatMessage>(`${API}/Send`, body).subscribe({
-      next: saved => {
-        this._activeMessages.update(l => l.some(m => m.id === saved.id) ? l : [...l, saved]);
-        this.loadConversations();
-      },
-      error: () => {},
+    return new Promise(resolve => {
+      this.http.post<ChatMessage>(`${API}/Send`, body).subscribe({
+        next: saved => {
+          this._activeMessages.update(l => l.some(m => m.id === saved.id) ? l : [...l, saved]);
+          this.loadConversations();
+          resolve(true);
+        },
+        error: () => resolve(false),
+      });
     });
   }
 }

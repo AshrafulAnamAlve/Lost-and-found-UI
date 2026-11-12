@@ -29,15 +29,24 @@
           <p class="profile-detail" *ngIf="user?.secondaryPhone">
             <i class="fas fa-phone-alt"></i> {{user?.secondaryPhone}} <span class="detail-tag">alternate</span>
           </p>
-          <p class="profile-detail"><i class="fas fa-map-marker-alt"></i> {{user?.city}}, Bangladesh</p>
-          <p class="profile-detail"><i class="fas fa-calendar-alt"></i> Member since Jan 2026</p>
+          <p class="profile-detail" *ngIf="user?.address || user?.city">
+            <i class="fas fa-map-marker-alt"></i> {{ user?.address }}<ng-container *ngIf="user?.address && user?.city">, </ng-container>{{ user?.city }}
+          </p>
 
           <div class="avatar-actions">
             <button type="button" class="avatar-btn" (click)="triggerAvatarUpload()" [disabled]="uploadingAvatar">
               <i class="fas" [ngClass]="uploadingAvatar ? 'fa-spinner fa-spin' : 'fa-camera'"></i>
               {{ uploadingAvatar ? 'Uploading…' : (avatarSrc ? 'Change photo' : 'Add a photo') }}
             </button>
-            <span class="avatar-hint">JPG, PNG, WebP or GIF · up to 5 MB · or drop one on the circle</span>
+            <span class="avatar-hint">JPG, PNG, WebP or GIF, up to 5 MB</span>
+          </div>
+          <div class="profile-buttons">
+            <button type="button" class="avatar-btn" (click)="openEditProfile()" [disabled]="!user">
+              <i class="fas fa-user-pen"></i> Edit profile
+            </button>
+            <button type="button" class="avatar-btn" (click)="openChangePassword()" [disabled]="!user">
+              <i class="fas fa-key"></i> Change password
+            </button>
           </div>
         </div>
       </div>
@@ -46,15 +55,15 @@
     <!-- AI Matches for the user's items -->
     <section class="ai-matches">
       <div class="ai-head">
-        <h3><i class="fas fa-robot"></i> AI Matches for Your Items</h3>
-        <a class="ai-head-link" routerLink="/matches">Open notifications <i class="fas fa-arrow-right"></i></a>
+        <h3><i class="fas fa-robot"></i> Matches for Your Items</h3>
+        <a class="ai-head-link" routerLink="/matches">See all matches <i class="fas fa-arrow-right"></i></a>
       </div>
 
-      <div *ngIf="loadingMatches" class="ai-loading">Searching for matches…</div>
+      <div *ngIf="loadingMatches" class="ai-loading"><i class="fas fa-spinner fa-spin"></i> Looking for matches...</div>
 
       <div *ngIf="!loadingMatches && aiGroups.length === 0" class="ai-empty">
         <i class="fas fa-magnifying-glass"></i>
-        <p>No matches yet. We'll keep comparing your items against new reports.</p>
+        <p>No matches yet. New reports are compared with yours automatically.</p>
       </div>
 
       <div class="ai-group" *ngFor="let g of aiGroups">
@@ -68,7 +77,7 @@
 
         <div class="ai-match-row" *ngFor="let m of g.matches" (click)="viewMatch(g.type, m.id)">
           <div class="ai-thumb">
-            <img *ngIf="m.imageUrl" [src]="resolveImg(m.imageUrl)" alt="" loading="lazy" decoding="async" (error)="$event.target.style.display='none'">
+            <img *ngIf="m.imageUrl" [src]="resolveImg(m.imageUrl)" alt="" loading="lazy" decoding="async" (error)="$any($event.target).style.display='none'">
             <i *ngIf="!m.imageUrl" class="fas fa-image"></i>
           </div>
 
@@ -78,7 +87,7 @@
               <span class="ai-conf" [class]="'conf-' + confKey(m)">{{ confLabel(m) }}</span>
             </div>
             <p class="ai-match-sub">
-              Matches your {{ g.type }} item — found in {{ m.location || 'unknown location' }}
+              Matches your {{ g.type }} item · {{ g.type === 'lost' ? 'found at' : 'lost at' }} {{ m.location || 'an unknown place' }}
             </p>
             <div class="ai-reason-chips" *ngIf="m.matchReasons?.length">
               <span class="ai-chip" *ngFor="let r of topReasons(m)" [class]="'rc-' + r.status">
@@ -98,7 +107,7 @@
 
     <!-- Posted Items (user's reports) -->
     <section class="posted-items" *ngIf="userItems.length > 0; else noReports">
-      <h3>Your Posted Items</h3>
+      <h3>Your Reports</h3>
       <div class="report-cards">
         <article class="report-card" *ngFor="let item of userItems" [class.is-resolved]="isResolved(item)">
           <div class="card-image">
@@ -110,20 +119,20 @@
               <i class="fas fa-circle-check"></i> {{ item.type === 'lost' ? 'RETURNED' : 'HANDED OVER' }}
             </span>
             <div class="card-controls">
-              <button class="icon edit" title="Edit" (click)="editItem(item)"><i class="fas fa-edit"></i></button>
-              <button class="icon delete" title="Delete" (click)="deleteItem(item)"><i class="fas fa-trash"></i></button>
+              <button type="button" class="icon edit" title="Edit report" aria-label="Edit report" (click)="editItem(item)"><i class="fas fa-pen"></i></button>
+              <button type="button" class="icon delete" title="Delete report" aria-label="Delete report" (click)="deleteItem(item)"><i class="fas fa-trash"></i></button>
             </div>
           </div>
           <div class="card-body">
             <h4 class="card-title">{{ item.title }}</h4>
-            <p class="card-sub">{{ item.location }}</p>
+            <p class="card-sub">{{ categoryLabel(item.category) }}</p>
             <div class="card-meta">
               <i class="fas fa-map-marker-alt"></i> {{ item.location }} &nbsp;
               <i class="fas fa-calendar-alt"></i> {{ item.date | date:'mediumDate' }}
             </div>
             <!-- Closing a report off. Open reports get the button; closed ones get the
                  undo, because a mis-tap must never be permanent. -->
-            <button class="resolve-btn" *ngIf="!isResolved(item)" (click)="openResolve(item)">
+            <button type="button" class="resolve-btn" *ngIf="!isResolved(item)" (click)="openResolve(item)">
               <i class="fas" [ngClass]="item.type === 'lost' ? 'fa-hand-holding-heart' : 'fa-handshake'"></i>
               {{ item.type === 'lost' ? 'Mark as returned' : 'Mark as handed over' }}
             </button>
@@ -131,12 +140,12 @@
             <div class="resolved-note" *ngIf="isResolved(item)">
               <i class="fas fa-circle-check"></i>
               <span>
-                Closed {{ item.resolvedAt | date: 'mediumDate' }}<span *ngIf="item.resolvedNote"> — {{ item.resolvedNote }}</span>
+                Closed {{ item.resolvedAt | date: 'mediumDate' }}<span *ngIf="item.resolvedNote">: {{ item.resolvedNote }}</span>
               </span>
-              <button class="reopen-btn" (click)="reopenItem(item)">Reopen</button>
+              <button type="button" class="reopen-btn" (click)="reopenItem(item)">Reopen</button>
             </div>
 
-            <button class="view-btn" [routerLink]="['/productDetails', item.type, item.id]" [queryParams]="{ref: 'profile'}">
+            <button type="button" class="view-btn" [routerLink]="['/productDetails', item.type, item.id]" [queryParams]="{ref: 'profile'}">
               View Details
             </button>
           </div>
@@ -153,10 +162,113 @@
     </app-resolve-item>
 
     <ng-template #noReports>
-      <p class="no-items" style="color:#eaf4ff; margin-top:20px;">
-        You haven't posted any items yet.
-      </p>
+      <div class="no-items" *ngIf="itemsLoaded && !loadFailed">
+        <p>You have not reported any items yet.</p>
+        <div class="no-items-actions">
+          <a routerLink="/lost" class="avatar-btn"><i class="fas fa-search-minus"></i> Report a lost item</a>
+          <a routerLink="/found" class="avatar-btn"><i class="fas fa-search-plus"></i> Report a found item</a>
+        </div>
+      </div>
     </ng-template>
+
+    <!-- ══ Edit profile ══════════════════════════════════════════════════ -->
+    <div class="pf-overlay" *ngIf="editingProfile" (click)="editingProfile = false">
+      <div class="pf-dialog" role="dialog" aria-modal="true" aria-labelledby="pf-title" (click)="$event.stopPropagation()">
+        <button type="button" class="pf-close" (click)="editingProfile = false" aria-label="Close"><i class="fas fa-times"></i></button>
+        <h3 id="pf-title">Edit profile</h3>
+        <p class="pf-sub">These details appear on your reports so people can reach you.</p>
+        <div class="pf-alert" *ngIf="profileError" role="alert"><i class="fas fa-circle-exclamation"></i> {{ profileError }}</div>
+        <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" novalidate>
+          <div class="pf-row">
+            <div class="pf-group">
+              <label for="pf-first">First name</label>
+              <input id="pf-first" formControlName="firstName" autocomplete="given-name">
+              <p class="field-error" *ngIf="pErr('firstName') as msg">{{ msg }}</p>
+            </div>
+            <div class="pf-group">
+              <label for="pf-last">Last name</label>
+              <input id="pf-last" formControlName="lastName" autocomplete="family-name">
+              <p class="field-error" *ngIf="pErr('lastName') as msg">{{ msg }}</p>
+            </div>
+          </div>
+          <div class="pf-group">
+            <label for="pf-email">Email</label>
+            <input id="pf-email" type="email" formControlName="email" autocomplete="email">
+            <p class="field-error" *ngIf="pErr('email') as msg">{{ msg }}</p>
+          </div>
+          <div class="pf-row">
+            <div class="pf-group">
+              <label for="pf-phone">Phone</label>
+              <input id="pf-phone" type="tel" formControlName="phone" autocomplete="tel">
+              <p class="field-error" *ngIf="pErr('phone') as msg">{{ msg }}</p>
+            </div>
+            <div class="pf-group">
+              <label for="pf-phone2">Secondary phone <span class="pf-optional">(optional)</span></label>
+              <input id="pf-phone2" type="tel" formControlName="secondaryPhone">
+              <p class="field-error" *ngIf="pErr('secondaryPhone') as msg">{{ msg }}</p>
+            </div>
+          </div>
+          <div class="pf-row">
+            <div class="pf-group">
+              <label for="pf-city">City</label>
+              <input id="pf-city" formControlName="city" autocomplete="address-level2">
+              <p class="field-error" *ngIf="pErr('city') as msg">{{ msg }}</p>
+            </div>
+            <div class="pf-group">
+              <label for="pf-address">Address</label>
+              <input id="pf-address" formControlName="address" autocomplete="street-address">
+              <p class="field-error" *ngIf="pErr('address') as msg">{{ msg }}</p>
+            </div>
+          </div>
+          <div class="pf-actions">
+            <button type="button" class="pf-btn-ghost" (click)="editingProfile = false" [disabled]="savingProfile">Cancel</button>
+            <button type="submit" class="pf-btn" [disabled]="savingProfile">
+              <i class="fas" [class.fa-save]="!savingProfile" [class.fa-spinner]="savingProfile" [class.fa-spin]="savingProfile"></i>
+              {{ savingProfile ? 'Saving...' : 'Save changes' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ══ Change password ═══════════════════════════════════════════════ -->
+    <div class="pf-overlay" *ngIf="changingPassword" (click)="changingPassword = false">
+      <div class="pf-dialog pf-narrow" role="dialog" aria-modal="true" aria-labelledby="pw-title" (click)="$event.stopPropagation()">
+        <button type="button" class="pf-close" (click)="changingPassword = false" aria-label="Close"><i class="fas fa-times"></i></button>
+        <h3 id="pw-title">Change password</h3>
+        <div class="pf-alert" *ngIf="passwordError" role="alert"><i class="fas fa-circle-exclamation"></i> {{ passwordError }}</div>
+        <form [formGroup]="passwordForm" (ngSubmit)="savePassword()" novalidate>
+          <div class="pf-group">
+            <label for="pw-current">Current password</label>
+            <input id="pw-current" [type]="showPasswords ? 'text' : 'password'" formControlName="currentPassword" autocomplete="current-password">
+            <p class="field-error" *ngIf="pwErr('currentPassword') as msg">{{ msg }}</p>
+          </div>
+          <div class="pf-group">
+            <label for="pw-new">New password</label>
+            <input id="pw-new" [type]="showPasswords ? 'text' : 'password'" formControlName="newPassword" autocomplete="new-password">
+            <p class="field-error" *ngIf="pwErr('newPassword') as msg">{{ msg }}</p>
+            <ul class="pf-rules">
+              <li *ngFor="let c of newPasswordChecks" [class.met]="c.met">
+                <i class="fas" [class.fa-check-circle]="c.met" [class.fa-circle]="!c.met"></i> {{ c.label }}
+              </li>
+            </ul>
+          </div>
+          <div class="pf-group">
+            <label for="pw-confirm">Confirm new password</label>
+            <input id="pw-confirm" [type]="showPasswords ? 'text' : 'password'" formControlName="confirmPassword" autocomplete="new-password">
+            <p class="field-error" *ngIf="pwErr('confirmPassword') as msg">{{ msg }}</p>
+          </div>
+          <label class="pf-check"><input type="checkbox" [checked]="showPasswords" (change)="showPasswords = !showPasswords"> Show passwords</label>
+          <div class="pf-actions">
+            <button type="button" class="pf-btn-ghost" (click)="changingPassword = false" [disabled]="savingPassword">Cancel</button>
+            <button type="submit" class="pf-btn" [disabled]="savingPassword">
+              <i class="fas" [class.fa-key]="!savingPassword" [class.fa-spinner]="savingPassword" [class.fa-spin]="savingPassword"></i>
+              {{ savingPassword ? 'Saving...' : 'Change password' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
 
   </div>
 </div>
