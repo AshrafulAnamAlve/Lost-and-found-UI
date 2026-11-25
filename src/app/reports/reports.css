@@ -32,6 +32,7 @@
   font-size: .9rem; background: #fff; color: var(--text); font-family: inherit;
 }
 .search-wrap input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(233,69,96,.08); }
+.filter-selects { display: contents; }
 .filter-sel {
   padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 10px;
   font-size: .88rem; background: #fff; color: var(--text); min-width: 155px; font-family: inherit;
@@ -42,7 +43,7 @@
 /* Grid */
 .items-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px,1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
   gap: 1.25rem; padding: 2rem;
 }
 
@@ -92,8 +93,8 @@
 .meta-chip i { font-size: .7rem; }
 
 .view-btn {
-  display: block; width: 100%; margin-top: .9rem;
-  padding: 9px; background: var(--bg); border: 1.5px solid var(--border);
+  display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: .9rem;
+  padding: 9px 12px; min-height: 44px; background: var(--bg); border: 1.5px solid var(--border);
   border-radius: 9px; color: var(--accent2); font-weight: 700; font-size: .85rem;
   cursor: pointer; transition: .2s; text-align: center; font-family: inherit;
 }
@@ -130,7 +131,41 @@
 .tab-active-lost .dot, .tab-active-found .dot { background: #fff; }
 .btn-retry {
   margin-top: 1rem; border: 1px solid var(--border); background: #fff; color: var(--text);
-  border-radius: 10px; padding: .6rem 1.2rem; font-weight: 600; cursor: pointer;
+  border-radius: 10px; padding: .6rem 1.2rem; min-height: 44px; font-weight: 600; cursor: pointer;
   display: inline-flex; align-items: center; gap: 8px;
 }
 .btn-retry:hover { background: #f3f5f9; }
+
+@media (max-width: 900px), (hover: none) {
+  .tab-btn { min-height: 44px; }
+}
+
+@media (max-width: 768px) {
+  .reports-header { padding: 1.4rem 1rem; }
+  .reports-header h1 { font-size: clamp(1.25rem, 5.2vw, 1.65rem); gap: 8px; }
+  .reports-header p { font-size: .88rem; }
+
+  .filters-bar {
+    position: static;
+    padding: .9rem 1rem;
+    gap: .65rem;
+  }
+  .tab-group { width: 100%; }
+  .tab-btn { flex: 1; justify-content: center; min-height: 44px; padding: 8px 10px; }
+  .search-wrap { width: 100%; flex: 1 1 100%; min-width: 0; }
+  .filter-selects {
+    display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; width: 100%;
+  }
+  .filter-sel { min-width: 0; width: 100%; min-height: 44px; }
+  .results-count { margin-left: 0; font-size: .82rem; }
+
+  .items-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
+    padding: 1rem; gap: 1rem;
+  }
+  .type-badge, .resolved-badge, .meta-chip { font-size: .75rem; }
+}
+
+@media (max-width: 359px) {
+  .filter-selects { grid-template-columns: 1fr; }
+}

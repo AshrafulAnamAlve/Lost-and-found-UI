@@ -27,3 +27,16 @@
   color: #fff; background: rgba(255,255,255,.09); border-left-color: var(--accent);
 }
 .side-links a i { font-size: .9rem; width: 18px; }
+
+@media (max-width: 900px) {
+  .side-navbar {
+    width: 100%; min-height: auto; height: auto;
+    position: sticky; top: 0;
+    flex-direction: row; align-items: center; justify-content: space-between;
+    padding: .25rem .75rem;
+  }
+  .side-logo { padding: .65rem .5rem; border-bottom: 0; font-size: 1rem; }
+  .side-links { flex-direction: row; padding: 0; overflow-x: auto; gap: 4px; }
+  .side-links a { padding: 10px 12px; min-height: 44px; border-left: 0; border-bottom: 3px solid transparent; white-space: nowrap; }
+  .side-links a:hover, .side-links a.active { border-left-color: transparent; border-bottom-color: var(--accent); }
+}

@@ -20,15 +20,17 @@
     <input type="search" [(ngModel)]="filters.keyword" (input)="search()" placeholder="Search items..." aria-label="Search items">
   </div>
 
-  <select class="filter-sel" [(ngModel)]="filters.category" (change)="search()" aria-label="Category">
-    <option value="">All categories</option>
-    <option *ngFor="let c of categories" [value]="c.value">{{ c.label }}</option>
-  </select>
+  <div class="filter-selects">
+    <select class="filter-sel" [(ngModel)]="filters.category" (change)="search()" aria-label="Category">
+      <option value="">All categories</option>
+      <option *ngFor="let c of categories" [value]="c.value">{{ c.label }}</option>
+    </select>
 
-  <select class="filter-sel" [(ngModel)]="filters.location" (change)="search()">
-    <option value="">All locations</option>
-    <option *ngFor="let loc of uniqueLocations">{{ loc }}</option>
-  </select>
+    <select class="filter-sel" [(ngModel)]="filters.location" (change)="search()" aria-label="Location">
+      <option value="">All locations</option>
+      <option *ngFor="let loc of uniqueLocations">{{ loc }}</option>
+    </select>
+  </div>
 
   <span class="results-count">{{ filteredItems.length }} item{{ filteredItems.length !== 1 ? 's' : '' }}</span>
 </div>

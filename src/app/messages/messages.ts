@@ -51,8 +51,16 @@ export class Messages implements OnInit {
           itemName: q.get('itemName') || undefined,
         };
         this.msgSvc.loadConversation(Number(to));
+      } else {
+        this.msgSvc.clearActive();
       }
     });
+  }
+
+  backToConversations() {
+    this.msgSvc.clearActive();
+    this.partnerName = '';
+    this.ctx = {};
   }
 
   openConversation(c: Conversation) {

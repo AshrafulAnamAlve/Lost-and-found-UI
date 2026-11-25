@@ -31,7 +31,7 @@
 .conv-time { font-size: .7rem; color: var(--muted); flex-shrink: 0; margin-left: .5rem; }
 .conv-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: .15rem; }
 .conv-preview { font-size: .82rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.conv-badge { background: var(--accent); color: #fff; font-size: .68rem; font-weight: 700; min-width: 18px; height: 18px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; padding: 0 5px; flex-shrink: 0; margin-left: .4rem; }
+.conv-badge { background: var(--accent); color: #fff; font-size: .75rem; font-weight: 700; min-width: 18px; height: 18px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; padding: 0 5px; flex-shrink: 0; margin-left: .4rem; }
 
 /* ── Avatar ──────────────────────────────────────── */
 .avatar { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; font-weight: 700; font-size: .9rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -39,13 +39,19 @@
 /* ── Thread ──────────────────────────────────────── */
 .thread { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .thread-head { display: flex; align-items: center; gap: .75rem; padding: .85rem 1.25rem; border-bottom: 1px solid var(--border); background: var(--card); }
-.th-info h3 { margin: 0; font-size: 1rem; color: var(--primary); }
-.th-info small { color: var(--muted); font-size: .76rem; }
+.th-back {
+  display: none; width: 44px; height: 44px; border-radius: 50%; border: none; cursor: pointer; flex-shrink: 0;
+  background: var(--bg); color: var(--primary); font-size: 1rem; align-items: center; justify-content: center;
+}
+.th-info { min-width: 0; flex: 1; }
+.th-info h3 { margin: 0; font-size: 1rem; color: var(--primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.th-info small { color: var(--muted); font-size: .78rem; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.th-call-btns { margin-left: auto; display: flex; gap: .6rem; }
+.th-call-btns { margin-left: auto; display: flex; gap: .5rem; flex-shrink: 0; }
 .th-call {
-  width: 40px; height: 40px; border-radius: 50%; border: none; cursor: pointer;
+  width: 44px; height: 44px; border-radius: 50%; border: none; cursor: pointer;
   background: var(--bg); color: var(--accent2); font-size: 1rem;
+  display: inline-flex; align-items: center; justify-content: center;
   transition: transform .15s, background .15s, color .15s;
 }
 .th-call:hover { transform: scale(1.1); background: var(--accent2); color: #fff; }
@@ -61,7 +67,7 @@
 .bubble { max-width: 72%; padding: .55rem .8rem; border-radius: 16px 16px 16px 4px; background: #fff; color: var(--text); box-shadow: var(--shadow); font-size: .9rem; line-height: 1.4; position: relative; word-wrap: break-word; }
 .bubble.mine { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border-radius: 16px 16px 4px 16px; }
 .bubble-text { display: block; }
-.bubble-time { display: block; font-size: .62rem; opacity: .65; margin-top: .2rem; text-align: right; }
+.bubble-time { display: block; font-size: .72rem; opacity: .72; margin-top: .25rem; text-align: right; }
 
 /* ── Input ───────────────────────────────────────── */
 .thread-input { display: flex; gap: .6rem; padding: .8rem 1rem; border-top: 1px solid var(--border); background: var(--card); }
@@ -78,6 +84,27 @@
 .ph-inner h3 { color: var(--primary); margin: 0 0 .35rem; }
 
 @media (max-width: 820px) {
-  .msgr { grid-template-columns: 1fr; }
-  .conv-list { display: none; }
+  .msgr {
+    grid-template-columns: 1fr;
+    height: calc(100dvh - 64px);
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .conv-list { border-right: 0; }
+  .msgr:not(.has-active) .thread,
+  .msgr:not(.has-active) .thread-placeholder { display: none; }
+  .msgr.has-active .conv-list { display: none; }
+  .th-back { display: inline-flex; }
+  .thread-head { padding: .65rem .75rem; gap: .55rem; }
+  .thread-body { padding: .9rem .75rem; }
+  .bubble { max-width: 84%; }
+  .thread-input { padding: .65rem .75rem max(.7rem, env(safe-area-inset-bottom)); }
+  .conv-time, .conv-badge { font-size: .75rem; }
+}
+
+@media (max-height: 480px) {
+  .thread-head { padding: .45rem .75rem; }
+  .thread-input { padding: .45rem .75rem; }
 }

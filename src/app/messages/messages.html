@@ -1,6 +1,6 @@
 <app-navbar></app-navbar>
 
-<div class="msgr">
+<div class="msgr" [class.has-active]="activePartner() != null">
 
   <!-- LEFT: conversation list -->
   <aside class="conv-list">
@@ -31,6 +31,9 @@
   <!-- RIGHT: active thread -->
   <section class="thread" *ngIf="activePartner() != null; else noThread">
     <div class="thread-head">
+      <button type="button" class="th-back" (click)="backToConversations()" title="Back to messages" aria-label="Back to messages">
+        <i class="fas fa-arrow-left"></i>
+      </button>
       <div class="avatar">{{ initials(partnerName) }}</div>
       <div class="th-info">
         <h3>{{ partnerName || 'Conversation' }}</h3>

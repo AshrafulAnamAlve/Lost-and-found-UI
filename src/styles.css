@@ -16,10 +16,11 @@
   --radius: 14px;
   --shadow: 0 4px 24px rgba(26,26,46,.07);
   --shadow-lg: 0 12px 40px rgba(26,26,46,.12);
+  --navbar-height: 64px;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { height: 100%; }
+html, body { height: 100%; overflow-x: clip; }
 body {
   font-family: 'DM Sans', sans-serif;
   background: var(--bg);
@@ -67,11 +68,11 @@ body {
 
 /* ── Password field with a show/hide button ── */
 .pw-field { position: relative; }
-.pw-field input { padding-right: 2.75rem !important; }
+.pw-field input { padding-right: 3rem !important; }
 .pw-toggle {
-  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  position: absolute; right: 2px; top: 50%; transform: translateY(-50%);
   border: 0; background: transparent; color: var(--muted); cursor: pointer;
-  width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
 }
 .pw-toggle:hover { color: var(--text); background: rgba(0,0,0,.05); }
 
@@ -84,10 +85,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 /* ── Inline validation message ── */
 .field-error {
   display: flex; align-items: flex-start; gap: 5px;
-  margin-top: .34rem; font-size: .76rem; font-weight: 600;
+  margin-top: .34rem; font-size: .8rem; font-weight: 600;
   color: var(--lost); line-height: 1.35;
 }
-.field-error::before { content: "⚠"; font-size: .78rem; line-height: 1.3; }
+.field-error::before { content: "⚠"; font-size: .82rem; line-height: 1.3; }
 
 /* ── Validation: any control the user has touched and left invalid ── */
 .form-group input.ng-invalid.ng-touched,
@@ -100,4 +101,18 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .form-group select.ng-valid.ng-touched,
 .form-group textarea.ng-valid.ng-touched {
   border-color: var(--found);
+}
+
+/* ── Mobile typography, iOS input zoom guard, & snackbar fit ── */
+@media (max-width: 600px) {
+  body { font-size: 14.5px; }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+  .mat-mdc-snack-bar-container {
+    max-width: calc(100vw - 16px) !important;
+    margin: 8px !important;
+  }
 }

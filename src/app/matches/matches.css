@@ -9,7 +9,7 @@
 }
 .header-left { display: flex; align-items: center; gap: 1rem; }
 .header-icon {
-  width: 52px; height: 52px; border-radius: 14px;
+  width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0;
   background: linear-gradient(135deg,#667eea,#764ba2);
   display: flex; align-items: center; justify-content: center;
   color: #fff; font-size: 1.4rem;
@@ -69,7 +69,7 @@
 .time-ago { font-size: .75rem; color: var(--muted); display: flex; align-items: center; gap: 5px; }
 
 /* Cards grid */
-.cards-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(230px,1fr)); gap: 1.1rem; padding: 1.25rem; }
+.cards-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(min(230px, 100%), 1fr)); gap: 1.1rem; padding: 1.25rem; }
 
 .match-card {
   border-radius: 12px; border: 1.5px solid var(--border); overflow: hidden;
@@ -161,9 +161,10 @@
 .contact-row i { color: var(--found); font-size: .7rem; width: 12px; }
 
 .btn-view {
-  display: block; width: 100%; padding: 9px; background: var(--bg);
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; padding: 10px 12px; min-height: 44px; background: var(--bg);
   border: 1.5px solid var(--border); border-radius: 9px; text-align: center;
-  font-size: .83rem; font-weight: 700; color: var(--accent2); cursor: pointer;
+  font-size: .85rem; font-weight: 700; color: var(--accent2); cursor: pointer;
   transition: .2s; font-family: inherit;
 }
 .btn-view:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
@@ -171,7 +172,7 @@
 /* ── Catchy animated Chat button ── */
 .btn-chat {
   display: flex; align-items: center; justify-content: center; gap: .45rem;
-  width: 100%; padding: 10px; margin-bottom: .55rem; border: none; cursor: pointer;
+  width: 100%; padding: 10px 12px; min-height: 44px; margin-bottom: .55rem; border: none; cursor: pointer;
   border-radius: 9px; font-family: inherit; font-size: .84rem; font-weight: 800; color: #fff;
   background: linear-gradient(135deg, var(--accent), var(--accent2));
   background-size: 200% 200%;
@@ -191,4 +192,23 @@
 @keyframes chatPulse {
   0%, 100% { box-shadow: 0 4px 14px rgba(233,69,96,.35); }
   50%      { box-shadow: 0 4px 20px rgba(15,52,96,.5); }
+}
+
+@media (max-width: 600px) {
+  .matches-page { padding: 1.25rem .85rem 3rem; }
+  .page-header { margin-bottom: 1.25rem; }
+  .header-left { align-items: flex-start; gap: .8rem; }
+  .header-icon { width: 44px; height: 44px; font-size: 1.15rem; }
+  .header-left h1 { font-size: clamp(1.25rem, 5.2vw, 1.5rem); }
+  .header-left p { font-size: .85rem; }
+
+  .group-header { padding: .85rem 1rem; }
+  .cards-grid { grid-template-columns: 1fr; padding: .85rem; gap: .9rem; }
+  .group-sub, .match-sentence, .tag, .card-meta span, .reason-chip, .score-bar-label {
+    font-size: .78rem;
+  }
+  .conf-badge, .pct-badge, .reasons-title { font-size: .74rem; }
+  .empty-state { padding: 3rem 1rem; }
+  .empty-actions { flex-direction: column; align-items: stretch; }
+  .btn-action { width: 100%; justify-content: center; min-height: 46px; }
 }

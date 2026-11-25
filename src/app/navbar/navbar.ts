@@ -1,4 +1,4 @@
-import { Component, HostListener, inject, OnInit } from '@angular/core';
+import { Component, ElementRef, HostListener, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
@@ -21,6 +21,7 @@ export class Navbar implements OnInit {
   userSvc     = inject(UserService);
   router      = inject(Router);
   private http = inject(HttpClient);
+  private el   = inject(ElementRef);
   displayName = session.name();
   menuOpen = false;
 
@@ -57,6 +58,16 @@ export class Navbar implements OnInit {
 
   @HostListener('window:resize')
   onResize() { if (window.innerWidth > 900) this.menuOpen = false; }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    if (this.menuOpen && !this.el.nativeElement.contains(event.target)) {
+      this.menuOpen = false;
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape() { this.menuOpen = false; }
 
   logout() {
     this.messageSvc.disconnect();

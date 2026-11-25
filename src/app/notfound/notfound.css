@@ -120,3 +120,13 @@ p {
   .magnifying-glass { width: 120px; height: 120px; border-width: 14px; }
   .question { font-size: 4.5rem; }
 }
+
+@media (max-width: 480px) {
+  h1 { font-size: 4.25rem; }
+  h2 { font-size: 1.6rem; }
+  p { font-size: 1rem; margin-bottom: 1.75rem; }
+  .animation { width: 150px; height: 150px; }
+  .magnifying-glass { width: 100px; height: 100px; border-width: 12px; }
+  .question { font-size: 3.75rem; }
+  .home-btn { padding: 14px 28px; font-size: 1rem; min-height: 44px; }
+}
