@@ -56,6 +56,8 @@
 }
 .th-call:hover { transform: scale(1.1); background: var(--accent2); color: #fff; }
 .th-call.video:hover { background: var(--accent); }
+.th-call.flag { color: #b91c1c; }
+.th-call.flag:hover { background: var(--accent); color: #fff; }
 
 .thread-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 1.25rem; display: flex; flex-direction: column; gap: .5rem; background: linear-gradient(180deg, #f7f9fd, #eef2fa); }
 

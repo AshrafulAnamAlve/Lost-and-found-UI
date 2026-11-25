@@ -1,0 +1,49 @@
+<div class="ra-overlay" (click)="close.emit()">
+  <div class="ra-box" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+    <button type="button" class="ra-close" (click)="close.emit()" aria-label="Close" [disabled]="submitting">
+      <i class="fas fa-times"></i>
+    </button>
+
+    <div class="ra-title">
+      <i class="fas fa-flag"></i>
+      <span>{{ heading }}</span>
+    </div>
+    <p class="ra-sub" *ngIf="targetLabel">
+      Target: <strong>{{ targetLabel }}</strong>
+    </p>
+
+    <label class="ra-label">Why are you reporting this?</label>
+    <div class="ra-reasons">
+      <button type="button" class="ra-chip"
+              *ngFor="let r of reasons"
+              [class.picked]="selectedReason === r"
+              (click)="selectReason(r)">
+        {{ r }}
+      </button>
+    </div>
+
+    <div *ngIf="selectedReason === 'Other'" class="ra-field">
+      <label class="ra-label" for="ra-custom">Specify reason</label>
+      <input id="ra-custom" [(ngModel)]="customReason" maxlength="100"
+             placeholder="Describe the issue briefly...">
+    </div>
+
+    <div class="ra-field">
+      <label class="ra-label" for="ra-details">Additional details <span>(optional)</span></label>
+      <textarea id="ra-details" rows="3" maxlength="500" [(ngModel)]="details"
+                placeholder="Any context that helps our admin team review this..."></textarea>
+    </div>
+
+    <div class="ra-error" *ngIf="errorMsg">
+      <i class="fas fa-circle-exclamation"></i> {{ errorMsg }}
+    </div>
+
+    <div class="ra-actions">
+      <button type="button" class="ra-btn-ghost" (click)="close.emit()" [disabled]="submitting">Cancel</button>
+      <button type="button" class="ra-btn-submit" (click)="submit()" [disabled]="submitting">
+        <i class="fas" [class.fa-flag]="!submitting" [class.fa-spinner]="submitting" [class.fa-spin]="submitting"></i>
+        {{ submitting ? 'Submitting...' : 'Submit report' }}
+      </button>
+    </div>
+  </div>
+</div>

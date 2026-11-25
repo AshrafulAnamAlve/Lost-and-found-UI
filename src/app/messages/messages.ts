@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Navbar } from '../navbar/navbar';
+import { ReportAbuse } from '../report-abuse/report-abuse';
 import { MessageService, Conversation } from '../message.service';
 import { CallService } from '../call.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -10,7 +11,7 @@ import { session } from '../session';
 
 @Component({
   selector: 'app-messages',
-  imports: [CommonModule, FormsModule, Navbar],
+  imports: [CommonModule, FormsModule, Navbar, ReportAbuse],
   templateUrl: './messages.html',
   styleUrl: './messages.css',
 })
@@ -25,6 +26,7 @@ export class Messages implements OnInit {
   draft = '';
   partnerName = '';
   ctx: { itemId?: number; itemType?: string; itemName?: string } = {};
+  reportingUser: { id: number; name: string } | null = null;
 
   conversations = this.msgSvc.conversations;
   messages      = this.msgSvc.activeMessages;
@@ -88,6 +90,12 @@ export class Messages implements OnInit {
     const partner = this.activePartner();
     if (partner == null) return;
     this.callSvc.startCall(partner, this.partnerName, type);
+  }
+
+  openReportUser() {
+    const partner = this.activePartner();
+    if (partner == null) return;
+    this.reportingUser = { id: partner, name: this.partnerName || `User #${partner}` };
   }
 
   initials(name: string): string {

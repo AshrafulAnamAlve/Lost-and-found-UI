@@ -1,0 +1,331 @@
+<app-navbar></app-navbar>
+
+<div class="adm-hero">
+  <div class="adm-hero-in">
+    <div>
+      <h1><i class="fas fa-shield-halved"></i> Admin Moderation &amp; Analytics</h1>
+      <p>Monitor site activity, manage users and items, and review community reports.</p>
+    </div>
+    <button type="button" class="adm-refresh" (click)="loadAll()" [disabled]="loading">
+      <i class="fas fa-rotate" [class.fa-spin]="loading"></i> Refresh
+    </button>
+  </div>
+</div>
+
+<div class="adm-tabs-wrap">
+  <div class="adm-tabs" role="tablist">
+    <button type="button" class="adm-tab" [class.active]="tab === 'overview'" (click)="tab = 'overview'">
+      <i class="fas fa-chart-pie"></i> Overview
+    </button>
+    <button type="button" class="adm-tab" [class.active]="tab === 'users'" (click)="tab = 'users'">
+      <i class="fas fa-users"></i> Users <span class="tab-pill">{{ users.length }}</span>
+    </button>
+    <button type="button" class="adm-tab" [class.active]="tab === 'items'" (click)="tab = 'items'">
+      <i class="fas fa-box-open"></i> Items <span class="tab-pill">{{ items.length }}</span>
+    </button>
+    <button type="button" class="adm-tab" [class.active]="tab === 'reports'" (click)="tab = 'reports'">
+      <i class="fas fa-flag"></i> Reports
+      <span class="tab-pill warn" *ngIf="pendingReportsCount > 0">{{ pendingReportsCount }}</span>
+      <span class="tab-pill" *ngIf="pendingReportsCount === 0">{{ reports.length }}</span>
+    </button>
+  </div>
+</div>
+
+<div class="adm-body">
+  <div class="adm-loading" *ngIf="loading && !overview">
+    <div class="spinner"></div>
+    <span>Loading admin dashboard...</span>
+  </div>
+
+  <!-- ══ OVERVIEW TAB ════════════════════════════════════════════════════ -->
+  <section *ngIf="tab === 'overview' && overview">
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="sc-icon users"><i class="fas fa-users"></i></div>
+        <div class="sc-val">{{ overview.users.total }}</div>
+        <div class="sc-lbl">Registered Users</div>
+        <div class="sc-sub">{{ overview.users.active }} active · {{ overview.users.blocked }} blocked</div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-icon items"><i class="fas fa-boxes-stacked"></i></div>
+        <div class="sc-val">{{ overview.items.total }}</div>
+        <div class="sc-lbl">Total Reports Posted</div>
+        <div class="sc-sub">{{ overview.items.lostTotal }} lost · {{ overview.items.foundTotal }} found</div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-icon resolved"><i class="fas fa-handshake"></i></div>
+        <div class="sc-val">{{ overview.items.totalResolved }}</div>
+        <div class="sc-lbl">Returned / Handed Over</div>
+        <div class="sc-sub">{{ overview.items.returnedLost }} lost back · {{ overview.items.handedOverFound }} found given</div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-icon reports"><i class="fas fa-flag"></i></div>
+        <div class="sc-val">{{ overview.reports.pending }}</div>
+        <div class="sc-lbl">Pending Abuse Reports</div>
+        <div class="sc-sub">{{ overview.reports.total }} reports · {{ overview.messagesCount }} chat msgs</div>
+      </div>
+    </div>
+
+    <div class="ov-panels">
+      <div class="adm-panel">
+        <div class="panel-head">
+          <h2><i class="fas fa-tags"></i> Category Breakdown</h2>
+        </div>
+        <div class="cat-grid">
+          <div class="cat-tile" *ngFor="let c of overview.categories">
+            <div class="cat-top">
+              <strong>{{ categoryLabel(c.category) }}</strong>
+              <span class="cat-tot">{{ c.total }}</span>
+            </div>
+            <div class="cat-meta">{{ c.lost }} lost · {{ c.found }} found · {{ c.resolved }} returned</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="adm-panel">
+        <div class="panel-head">
+          <h2><i class="fas fa-trophy"></i> User Activity Summary</h2>
+          <button type="button" class="link-small" (click)="tab = 'users'">View all users →</button>
+        </div>
+        <div class="contrib-list">
+          <div class="contrib-row" *ngFor="let u of topContributors">
+            <div class="cr-user">
+              <strong>{{ u.fullName }}</strong>
+              <small>{{ u.email }}</small>
+            </div>
+            <div class="cr-stats">
+              <span class="mini-tag">{{ u.lostCount }} lost</span>
+              <span class="mini-tag found">{{ u.foundCount }} found</span>
+              <span class="mini-tag ret">{{ u.totalResolved }} returned</span>
+              <span class="mini-tag blocked" *ngIf="u.isBlocked">Blocked</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ MANAGE USERS TAB ════════════════════════════════════════════════ -->
+  <section *ngIf="tab === 'users'">
+    <div class="toolbar">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input [(ngModel)]="userSearch" placeholder="Search name, email, phone or city..." aria-label="Search users">
+      </div>
+      <div class="filter-pills">
+        <button type="button" class="f-pill" [class.active]="userFilter === 'all'" (click)="userFilter = 'all'">All ({{ users.length }})</button>
+        <button type="button" class="f-pill" [class.active]="userFilter === 'active'" (click)="userFilter = 'active'">Active</button>
+        <button type="button" class="f-pill" [class.active]="userFilter === 'blocked'" (click)="userFilter = 'blocked'">Blocked</button>
+      </div>
+    </div>
+
+    <div class="empty-msg" *ngIf="filteredUsers.length === 0">No matching users found.</div>
+
+    <div class="adm-list">
+      <div class="user-card" *ngFor="let u of filteredUsers" [class.is-blocked]="u.isBlocked">
+        <div class="uc-main">
+          <div class="uc-title">
+            <strong>{{ u.fullName }}</strong>
+            <span class="role-badge admin" *ngIf="u.role === 'Admin'">Admin</span>
+            <span class="status-badge blocked" *ngIf="u.isBlocked">Blocked</span>
+            <span class="status-badge active" *ngIf="!u.isBlocked && u.role !== 'Admin'">Active</span>
+          </div>
+          <div class="uc-sub">{{ u.email }} · {{ u.phone }} · {{ u.city }}</div>
+          <div class="uc-reason" *ngIf="u.isBlocked && u.blockReason">
+            <i class="fas fa-ban"></i> Reason: {{ u.blockReason }}
+          </div>
+        </div>
+
+        <div class="uc-metrics">
+          <div><small>Lost</small><strong>{{ u.lostCount }}</strong></div>
+          <div><small>Found</small><strong>{{ u.foundCount }}</strong></div>
+          <div><small>Total</small><strong>{{ u.totalPosted }}</strong></div>
+          <div><small>Returned</small><strong>{{ u.totalResolved }}</strong></div>
+          <div><small>Reported</small><strong [class.danger-txt]="u.reportsReceivedCount > 0">{{ u.reportsReceivedCount }}</strong></div>
+        </div>
+
+        <div class="uc-actions">
+          <ng-container *ngIf="u.role !== 'Admin'; else adminSelfTag">
+            <button type="button" class="btn-block" *ngIf="!u.isBlocked" (click)="openBlockModal(u)" [disabled]="busy">
+              <i class="fas fa-user-lock"></i> Block
+            </button>
+            <button type="button" class="btn-unblock" *ngIf="u.isBlocked" (click)="unblockUser(u)" [disabled]="busy">
+              <i class="fas fa-unlock"></i> Unblock
+            </button>
+          </ng-container>
+          <ng-template #adminSelfTag>
+            <span class="protected-lbl"><i class="fas fa-shield-halved"></i> Protected</span>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ MANAGE ITEMS TAB ════════════════════════════════════════════════ -->
+  <section *ngIf="tab === 'items'">
+    <div class="toolbar">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input [(ngModel)]="itemSearch" placeholder="Search item, category, location or reporter..." aria-label="Search items">
+      </div>
+      <div class="filter-pills">
+        <button type="button" class="f-pill" [class.active]="itemTypeFilter === 'all'" (click)="itemTypeFilter = 'all'">All</button>
+        <button type="button" class="f-pill" [class.active]="itemTypeFilter === 'lost'" (click)="itemTypeFilter = 'lost'">Lost</button>
+        <button type="button" class="f-pill" [class.active]="itemTypeFilter === 'found'" (click)="itemTypeFilter = 'found'">Found</button>
+      </div>
+      <div class="filter-pills">
+        <button type="button" class="f-pill" [class.active]="itemStatusFilter === 'all'" (click)="itemStatusFilter = 'all'">Any status</button>
+        <button type="button" class="f-pill" [class.active]="itemStatusFilter === 'open'" (click)="itemStatusFilter = 'open'">Open</button>
+        <button type="button" class="f-pill" [class.active]="itemStatusFilter === 'resolved'" (click)="itemStatusFilter = 'resolved'">Returned</button>
+        <button type="button" class="f-pill" [class.active]="itemStatusFilter === 'reported'" (click)="itemStatusFilter = 'reported'">Flagged</button>
+      </div>
+    </div>
+
+    <div class="empty-msg" *ngIf="filteredItems.length === 0">No matching items found.</div>
+
+    <div class="adm-list">
+      <div class="item-card" *ngFor="let it of filteredItems">
+        <div class="it-thumb">
+          <img *ngIf="it.imageUrl" [src]="imgUrl(it.imageUrl)" [alt]="it.itemName" loading="lazy">
+          <i *ngIf="!it.imageUrl" class="fas fa-image"></i>
+        </div>
+        <div class="it-info">
+          <div class="it-badges">
+            <span class="kind-pill" [class.lost]="it.type === 'lost'" [class.found]="it.type === 'found'">{{ it.type }}</span>
+            <span class="mini-tag">{{ categoryLabel(it.category) }}</span>
+            <span class="mini-tag ret" *ngIf="it.status === 'resolved'">Returned</span>
+            <span class="mini-tag warn" *ngIf="it.reportsCount > 0">{{ it.reportsCount }} report{{ it.reportsCount === 1 ? '' : 's' }}</span>
+          </div>
+          <a class="it-name" [routerLink]="['/productDetails', it.type, it.id]">{{ it.itemName }}</a>
+          <div class="it-meta">
+            <span><i class="fas fa-user"></i> {{ it.userName }} <em class="blk-tag" *ngIf="it.ownerBlocked">(Blocked)</em></span>
+            <span><i class="fas fa-map-marker-alt"></i> {{ it.location }}</span>
+            <span><i class="fas fa-calendar"></i> {{ it.date | date:'mediumDate' }}</span>
+          </div>
+        </div>
+        <div class="it-actions">
+          <a class="btn-view-sm" [routerLink]="['/productDetails', it.type, it.id]"><i class="fas fa-eye"></i> View</a>
+          <button type="button" class="btn-del-sm" (click)="openDeleteModal(it)" [disabled]="busy">
+            <i class="fas fa-trash-alt"></i> Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ REPORTS TAB ═════════════════════════════════════════════════════ -->
+  <section *ngIf="tab === 'reports'">
+    <div class="toolbar">
+      <div class="filter-pills">
+        <button type="button" class="f-pill" [class.active]="reportFilter === 'pending'" (click)="reportFilter = 'pending'">
+          Pending ({{ pendingReportsCount }})
+        </button>
+        <button type="button" class="f-pill" [class.active]="reportFilter === 'reviewed'" (click)="reportFilter = 'reviewed'">Reviewed</button>
+        <button type="button" class="f-pill" [class.active]="reportFilter === 'dismissed'" (click)="reportFilter = 'dismissed'">Dismissed</button>
+        <button type="button" class="f-pill" [class.active]="reportFilter === 'all'" (click)="reportFilter = 'all'">All ({{ reports.length }})</button>
+      </div>
+    </div>
+
+    <div class="empty-msg" *ngIf="filteredReports.length === 0">No {{ reportFilter === 'all' ? '' : reportFilter }} moderation reports right now.</div>
+
+    <div class="adm-list">
+      <div class="rep-card" *ngFor="let r of filteredReports" [class.is-pending]="r.status === 'pending'">
+        <div class="rep-top">
+          <div class="rep-tags">
+            <span class="status-badge" [class.pending]="r.status === 'pending'" [class.active]="r.status === 'reviewed'" [class.muted]="r.status === 'dismissed'">
+              {{ r.status }}
+            </span>
+            <span class="mini-tag">{{ r.targetType === 'item' ? (r.itemKind + ' post') : 'user account' }}</span>
+            <span class="rep-date">{{ r.createdAt | date:'medium' }}</span>
+          </div>
+        </div>
+
+        <div class="rep-body">
+          <div class="rep-target">
+            <img *ngIf="r.targetImageUrl" [src]="imgUrl(r.targetImageUrl)" alt="" class="rep-thumb">
+            <div>
+              <ng-container *ngIf="r.targetType === 'item' && r.targetExists; else plainTarget">
+                <a class="rep-title" [routerLink]="['/productDetails', r.itemKind, r.targetId]">
+                  {{ r.targetTitle }} <i class="fas fa-arrow-up-right-from-square"></i>
+                </a>
+              </ng-container>
+              <ng-template #plainTarget>
+                <span class="rep-title">{{ r.targetTitle }}</span>
+              </ng-template>
+              <div class="rep-sub" *ngIf="r.targetOwner">
+                Owner: <strong>{{ r.targetOwner.name }}</strong> ({{ r.targetOwner.email }})
+                <span class="blk-tag" *ngIf="r.targetUserBlocked"> · Blocked</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rep-reason-box">
+            <strong>Reason: {{ r.reason }}</strong>
+            <p *ngIf="r.details">{{ r.details }}</p>
+            <small>Reported by: {{ r.reporterName }} ({{ r.reporterEmail }})</small>
+            <small class="adm-note" *ngIf="r.adminNote"> · Admin note: {{ r.adminNote }}</small>
+          </div>
+        </div>
+
+        <div class="rep-actions">
+          <button type="button" class="btn-del-sm"
+                  *ngIf="r.targetType === 'item' && r.targetExists"
+                  (click)="openDeleteModal({ id: r.targetId, type: r.itemKind, itemName: r.targetTitle, userName: r.targetOwner?.name || '' })"
+                  [disabled]="busy">
+            <i class="fas fa-trash-alt"></i> Delete item
+          </button>
+          <button type="button" class="btn-block"
+                  *ngIf="r.targetOwnerUserId && !r.targetUserBlocked"
+                  (click)="openBlockById(r.targetOwnerUserId, r.targetOwner?.name || r.targetTitle)"
+                  [disabled]="busy">
+            <i class="fas fa-user-lock"></i> Block user
+          </button>
+          <button type="button" class="btn-ok"
+                  *ngIf="r.status === 'pending'"
+                  (click)="resolveReport(r, 'reviewed')"
+                  [disabled]="busy">
+            <i class="fas fa-check"></i> Mark reviewed
+          </button>
+          <button type="button" class="btn-dismiss"
+                  *ngIf="r.status === 'pending'"
+                  (click)="resolveReport(r, 'dismissed')"
+                  [disabled]="busy">
+            Dismiss
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ══ BLOCK USER MODAL ══════════════════════════════════════════════════ -->
+<div class="adm-overlay" *ngIf="blockingUser" (click)="blockingUser = null">
+  <div class="adm-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+    <button type="button" class="adm-mclose" (click)="blockingUser = null" aria-label="Close"><i class="fas fa-times"></i></button>
+    <h3><i class="fas fa-user-lock"></i> Block user account</h3>
+    <p><strong>{{ blockingUser.fullName }}</strong> ({{ blockingUser.email }}) will be immediately signed out and blocked from signing in or posting.</p>
+    <label class="m-lbl" for="blk-reason">Reason (optional)</label>
+    <input id="blk-reason" [(ngModel)]="blockReason" maxlength="250" placeholder="e.g. Repeated spam reports or scam attempts">
+    <div class="m-actions">
+      <button type="button" class="m-ghost" (click)="blockingUser = null" [disabled]="busy">Cancel</button>
+      <button type="button" class="m-danger" (click)="confirmBlock()" [disabled]="busy">
+        {{ busy ? 'Blocking...' : 'Confirm block' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DELETE ITEM MODAL ═════════════════════════════════════════════════ -->
+<div class="adm-overlay" *ngIf="deletingItem" (click)="deletingItem = null">
+  <div class="adm-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+    <button type="button" class="adm-mclose" (click)="deletingItem = null" aria-label="Close"><i class="fas fa-times"></i></button>
+    <h3><i class="fas fa-trash-alt"></i> Delete reported item</h3>
+    <p>Permanently delete <strong>{{ deletingItem.itemName }}</strong> ({{ deletingItem.type }} #{{ deletingItem.id }})? Its uploaded photo and open moderation reports will also be resolved.</p>
+    <div class="m-actions">
+      <button type="button" class="m-ghost" (click)="deletingItem = null" [disabled]="busy">Cancel</button>
+      <button type="button" class="m-danger" (click)="confirmDeleteItem()" [disabled]="busy">
+        {{ busy ? 'Deleting...' : 'Delete permanently' }}
+      </button>
+    </div>
+  </div>
+</div>

@@ -377,6 +377,12 @@ a.btn-email, a.btn-modal-email { text-decoration: none; display: inline-flex; al
 
 .msg-btn-row a.btn-email, .modal-action-row a.btn-modal-email { background: #fff; color: var(--text); border: 1.5px solid var(--border); }
 .msg-btn-row a.btn-email:hover, .modal-action-row a.btn-modal-email:hover { background: #f3f5f9; }
+.btn-report-flag {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 13px;
+  border-radius: 10px; border: 1.5px solid rgba(233,69,96,.28); background: rgba(233,69,96,.05);
+  color: #b91c1c; font-family: inherit; font-size: .82rem; font-weight: 700; cursor: pointer; transition: .18s;
+}
+.btn-report-flag:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
 
 @media (max-width: 600px) {
   .page-wrapper { padding: 1rem 1rem 3rem; }

@@ -37,6 +37,9 @@
         <div class="detail-body">
           <div class="title-row">
             <h1 class="item-name">{{ item.itemName }}</h1>
+            <button type="button" class="btn-report-flag" *ngIf="!isMine" (click)="openAbuseReport('item')">
+              <i class="fas fa-flag"></i> Report post
+            </button>
             <div class="owner-actions" *ngIf="isMine">
               <button type="button" class="btn-owner" (click)="editItem()"><i class="fas fa-pen"></i> Edit</button>
               <button type="button" class="btn-owner danger" (click)="deleteItem()" [disabled]="deleting">
@@ -123,6 +126,9 @@
               <a class="btn-email" *ngIf="item.email" [href]="mailLink(item.email, item.itemName, item.type)">
                 <i class="fas fa-envelope"></i> Email
               </a>
+              <button type="button" class="btn-report-flag" *ngIf="item.userId" (click)="openAbuseReport('user')">
+                <i class="fas fa-user-slash"></i> Report user
+              </button>
             </div>
             <p class="safety-note" *ngIf="item.type === 'found'">
               <i class="fas fa-shield-halved"></i> Be ready to describe details only the owner would know.
@@ -277,3 +283,13 @@
   (resolved)="onResolved($event)"
   (cancelled)="showResolve = false">
 </app-resolve-item>
+
+<app-report-abuse
+  *ngIf="abuseReport"
+  [targetType]="abuseReport.targetType"
+  [targetId]="abuseReport.targetId"
+  [itemKind]="abuseReport.itemKind"
+  [targetLabel]="abuseReport.targetLabel"
+  (close)="abuseReport = null"
+  (submitted)="abuseReport = null">
+</app-report-abuse>

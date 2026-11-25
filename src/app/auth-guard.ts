@@ -10,3 +10,18 @@ export const authGuard: CanActivateFn = (_route, state) => {
   inject(MatSnackBar).open('Please sign in to continue.', 'OK', { duration: 4000, verticalPosition: 'top' });
   return inject(Router).createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
 };
+
+/** Pages restricted to administrator accounts. */
+export const adminGuard: CanActivateFn = (_route, state) => {
+  const router = inject(Router);
+  const snack = inject(MatSnackBar);
+
+  if (!session.isLoggedIn()) {
+    snack.open('Please sign in to continue.', 'OK', { duration: 4000, verticalPosition: 'top' });
+    return router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
+  }
+  if (session.isAdmin()) return true;
+
+  snack.open('Administrator access required.', 'OK', { duration: 4000, verticalPosition: 'top', panelClass: 'snack-error' });
+  return router.createUrlTree(['/dashbord']);
+};

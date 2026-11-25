@@ -22,6 +22,7 @@
 .nav-link:hover, .nav-link.active { color: #fff; background: rgba(255,255,255,.12); }
 .nav-link.lost-link:hover  { background: rgba(233,69,96,.2); color: #f87990; }
 .nav-link.found-link:hover { background: rgba(22,160,133,.2); color: #4ecdc4; }
+.nav-link.admin-link:hover, .nav-link.admin-link.active { background: rgba(243,156,18,.2); color: #fcd34d; }
 .nav-link i { font-size: .85rem; }
 .nav-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .user-chip {
@@ -74,9 +75,9 @@ button.logout-btn { border: 0; background: transparent; font: inherit; }
 }
 button.nav-link { border: 0; background: transparent; font: inherit; cursor: pointer; width: 100%; text-align: left; }
 
-@media (max-width: 1100px) {
+@media (max-width: 1200px) {
   .logout-text { display: none; }
-  .nav-link { padding: 8px 10px; }
+  .nav-link { padding: 8px 10px; font-size: .84rem; }
 }
 
 /* Phones and small tablets: links fold into a menu under the bar. */

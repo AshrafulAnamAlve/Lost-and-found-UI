@@ -42,6 +42,7 @@
       <div class="th-call-btns">
         <button class="th-call" (click)="startCall('audio')" title="Voice call"><i class="fas fa-phone"></i></button>
         <button class="th-call video" (click)="startCall('video')" title="Video call"><i class="fas fa-video"></i></button>
+        <button type="button" class="th-call flag" (click)="openReportUser()" title="Report user" aria-label="Report user"><i class="fas fa-flag"></i></button>
       </div>
     </div>
 
@@ -77,3 +78,12 @@
   </ng-template>
 
 </div>
+
+<app-report-abuse
+  *ngIf="reportingUser"
+  targetType="user"
+  [targetId]="reportingUser.id"
+  [targetLabel]="reportingUser.name"
+  (close)="reportingUser = null"
+  (submitted)="reportingUser = null">
+</app-report-abuse>

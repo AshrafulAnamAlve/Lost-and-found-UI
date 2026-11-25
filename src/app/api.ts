@@ -12,6 +12,10 @@ export const API_ORIGIN = environment.apiOrigin || `https://${location.hostname}
 export const API_BASE = `${API_ORIGIN}/api/LostAndFound`;
 /** Chat REST endpoints. */
 export const MESSAGES_API = `${API_ORIGIN}/api/Messages`;
+/** User moderation/reporting endpoints. */
+export const MODERATION_API = `${API_ORIGIN}/api/Moderation`;
+/** Administrator management & analytics endpoints. */
+export const ADMIN_API = `${API_ORIGIN}/api/Admin`;
 /** SignalR chat/call hub. */
 export const CHAT_HUB = `${API_ORIGIN}/chatHub`;
 

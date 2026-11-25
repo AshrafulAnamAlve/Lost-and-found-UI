@@ -31,6 +31,12 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         snackBar.open(
           wasSignedIn ? 'Your session has expired. Please sign in again.' : 'Please sign in to continue.',
           'OK', { duration: 5000, verticalPosition: 'top' });
+      } else if (ours && err.status === 403 && err.error?.blocked && !isSignIn) {
+        session.clear();
+        router.navigate(['/login']);
+        snackBar.open(
+          err.error?.message || 'Your account has been blocked by an administrator.',
+          'OK', { duration: 6000, verticalPosition: 'top', panelClass: 'snack-error' });
       }
       return throwError(() => err);
     }),

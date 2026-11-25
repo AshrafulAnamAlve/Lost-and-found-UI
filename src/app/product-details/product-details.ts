@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { API_BASE as API, resolveImageUrl } from '../api';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ResolveItem } from '../resolve-item/resolve-item';
+import { ReportAbuse } from '../report-abuse/report-abuse';
 import { Navbar } from '../navbar/navbar';
 import { MatchService } from '../match.service';
 import { apiErrorMessage } from '../auth.interceptor';
@@ -13,7 +14,7 @@ import { session } from '../session';
 
 @Component({
   selector: 'app-product-details',
-  imports: [CommonModule, RouterModule, ResolveItem, Navbar],
+  imports: [CommonModule, RouterModule, ResolveItem, ReportAbuse, Navbar],
   templateUrl: './product-details.html',
   styleUrl: './product-details.css',
 })
@@ -38,6 +39,25 @@ export class ProductDetails implements OnInit {
 
   // ── closing this report off ─────────────────────────────────────────────
   showResolve = false;
+  abuseReport: { targetType: 'item' | 'user'; targetId: number; itemKind?: string; targetLabel: string } | null = null;
+
+  openAbuseReport(kind: 'item' | 'user') {
+    if (!this.item) return;
+    if (kind === 'item') {
+      this.abuseReport = {
+        targetType: 'item',
+        targetId: this.item.id,
+        itemKind: this.item.type,
+        targetLabel: this.item.itemName || `${this.item.type} #${this.item.id}`,
+      };
+    } else if (this.item.userId) {
+      this.abuseReport = {
+        targetType: 'user',
+        targetId: this.item.userId,
+        targetLabel: this.item.userName || 'Account',
+      };
+    }
+  }
 
   /** Only the person who filed the report can change it — the API enforces this too. */
   get isMine(): boolean { return !!this.item && this.item.userId === this.myId; }

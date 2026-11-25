@@ -33,12 +33,13 @@ export class Navbar implements OnInit {
     this.messageSvc.loadUnreadCount();
     this.userSvc.loadOnce();
 
-    // The name is cached at sign-in; fetch it if this session started without one.
-    if (!this.displayName) {
+    // The name/role are cached at sign-in; fetch them if missing.
+    if (!this.displayName || !localStorage.getItem('laf_role')) {
       this.http.get<any>(`${API_BASE}/getUser/${session.userId()}`).subscribe({
         next: (u) => {
           const name = `${u.firstName || ''} ${u.lastName || ''}`.trim();
           session.setName(name);
+          if (u?.role) session.setRole(u.role);
           this.displayName = name;
         },
         error: () => {},
@@ -51,6 +52,7 @@ export class Navbar implements OnInit {
   /** First name only - the chip has little room. */
   get shortName(): string { return (this.displayName || '').split(' ')[0] || 'My profile'; }
 
+  get isAdmin(): boolean { return session.isAdmin(); }
   get unseenCount() { return this.matchSvc.unseen(); }
   get msgUnread()   { return this.messageSvc.unreadCount(); }
 

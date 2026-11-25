@@ -2,7 +2,8 @@ import { Routes } from '@angular/router';
 import { Login } from './login/login';
 import { Notfound } from './notfound/notfound';
 import { Dashbord } from './dashbord/dashbord';
-import { authGuard } from './auth-guard';
+import { adminGuard, authGuard } from './auth-guard';
+import { Admin } from './admin/admin';
 import { Lost } from './lost/lost';
 import { Found } from './found/found';
 import { Reports } from './reports/reports';
@@ -26,5 +27,6 @@ export const routes: Routes = [
   { path: 'messages',                  component: Messages,       canActivate: [authGuard], title: name('Messages') },
   { path: 'productDetails/:type/:id',  component: ProductDetails, canActivate: [authGuard], title: name('Item details') },
   { path: 'profile',                   component: Profile,        canActivate: [authGuard], title: name('My profile') },
+  { path: 'admin',                     component: Admin,          canActivate: [adminGuard], title: name('Admin Panel') },
   { path: '**',                        component: Notfound,       title: name('Page not found') },
 ];
